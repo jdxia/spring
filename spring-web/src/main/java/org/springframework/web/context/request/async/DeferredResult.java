@@ -57,18 +57,19 @@ public class DeferredResult<T> {
 
 	private static final Log logger = LogFactory.getLog(DeferredResult.class);
 
-
+	// 超时时间（ms） 可以不配置
 	@Nullable
 	private final Long timeoutValue;
 
+	// 相当于超时的话的，传给回调函数的值
 	private final Supplier<?> timeoutResult;
 
+	// 这三种回调也都是支持的
 	private Runnable timeoutCallback;
-
 	private Consumer<Throwable> errorCallback;
-
 	private Runnable completionCallback;
 
+	// 这个比较强大，就是能把我们结果再交给这个自定义的函数处理了 他是个@FunctionalInterface
 	private DeferredResultHandler resultHandler;
 
 	private volatile Object result = RESULT_NONE;
@@ -126,6 +127,9 @@ public class DeferredResult<T> {
 	 * timeout result was provided to the constructor. The request may also
 	 * expire due to a timeout or network error.
 	 */
+	// 判断这个DeferredResult是否已经被set过了（被set过的对象，就可以移除了嘛）
+	// 如果expired表示已经过期了你还没set，也是返回false的
+	// Spring4.0之后提供的
 	public final boolean isSetOrExpired() {
 		return (this.result != RESULT_NONE || this.expired);
 	}
@@ -197,6 +201,7 @@ public class DeferredResult<T> {
 	 * @param resultHandler the handler
 	 * @see DeferredResultProcessingInterceptor
 	 */
+	// 如果你的result还需要处理，可以这是一个resultHandler，会对你设置进去的结果进行处理
 	public final void setResultHandler(DeferredResultHandler resultHandler) {
 		Assert.notNull(resultHandler, "DeferredResultHandler is required");
 		// Immediate expiration check outside of the result lock
@@ -234,23 +239,32 @@ public class DeferredResult<T> {
 	 * {@code false} if the result was already set or the async request expired
 	 * @see #isSetOrExpired()
 	 */
+	// 供使用者调用以设置响应结果
+	// 我们发现，这里调用是private方法setResultInternal，我们设置进来的结果result，会经过它的处理
+	// 而它的处理逻辑也很简单，如果我们提供了resultHandler，它会把这个值进一步的交给我们的resultHandler处理
+	// 若我们没有提供此resultHandler，那就保存下这个result即可
 	public boolean setResult(T result) {
 		return setResultInternal(result);
 	}
 
 	private boolean setResultInternal(Object result) {
 		// Immediate expiration check outside of the result lock
+		// 判断请求是否过期
 		if (isSetOrExpired()) {
 			return false;
 		}
 		DeferredResultHandler resultHandlerToUse;
 		synchronized (this) {
 			// Got the lock in the meantime: double-check expiration status
+			// 这里运用到了锁的双重检测，判断当前请求的状态
 			if (isSetOrExpired()) {
 				return false;
 			}
 			// At this point, we got a new result to process
+			// 将响应结果赋值给该对象
 			this.result = result;
+			// 该结果处理器就是在 WebAsyncManager 的 startDeferredResultProcessing() 方法中配置的
+			// 赋值给本地变量，将对象的置空
 			resultHandlerToUse = this.resultHandler;
 			if (resultHandlerToUse == null) {
 				// No result handler set yet -> let the setResultHandler implementation
@@ -264,6 +278,7 @@ public class DeferredResult<T> {
 		// If we get here, we need to process an existing result object immediately.
 		// The decision is made within the result lock; just the handle call outside
 		// of it, avoiding any deadlock potential with Servlet container locks.
+		// 回调
 		resultHandlerToUse.handleResult(result);
 		return true;
 	}
@@ -278,11 +293,15 @@ public class DeferredResult<T> {
 	 * request expired
 	 * @see #isSetOrExpired()
 	 */
+	// 发生错误了，也可以设置一个值。这个result会被记下来，当作result
+	// 注意这个和setResult的唯一区别，这里入参是Object类型，而setResult只能set规定的指定类型
+	// 定义成Obj是有原因的：因为我们一般会把Exception等异常对象放进来。。。
 	public boolean setErrorResult(Object result) {
 		return setResultInternal(result);
 	}
 
-
+// 拦截器 注意最终finally里面，都可能会调用我们的自己的处理器resultHandler(若存在的话)
+	// afterCompletion不会调用resultHandler~~~~~~~~~~~~~
 	final DeferredResultProcessingInterceptor getInterceptor() {
 		return new DeferredResultProcessingInterceptor() {
 			@Override
@@ -334,6 +353,7 @@ public class DeferredResult<T> {
 		};
 	}
 
+	// 内部函数式接口 DeferredResultHandler
 
 	/**
 	 * Handles a DeferredResult value when set.

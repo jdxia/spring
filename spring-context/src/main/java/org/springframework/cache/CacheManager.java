@@ -20,6 +20,7 @@ import java.util.Collection;
 
 import org.springframework.lang.Nullable;
 
+// 缓存管理器，获取缓存的接口
 /**
  * Spring's central cache manager SPI.
  *

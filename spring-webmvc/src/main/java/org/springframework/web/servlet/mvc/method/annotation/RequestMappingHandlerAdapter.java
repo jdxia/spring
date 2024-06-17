@@ -193,6 +193,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 
 	public RequestMappingHandlerAdapter() {
+		// 添加 Converter
 		this.messageConverters = new ArrayList<>(4);
 		this.messageConverters.add(new ByteArrayHttpMessageConverter());
 		this.messageConverters.add(new StringHttpMessageConverter());
@@ -558,15 +559,20 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		// Do this first, it may add ResponseBody advice beans
 		initControllerAdviceCache();
 
+		// 参数解析器
 		if (this.argumentResolvers == null) {
+			// 获取默认的方法参数解析器
 			List<HandlerMethodArgumentResolver> resolvers = getDefaultArgumentResolvers();
 			this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 		}
+		//数据绑定器参数解析器
 		if (this.initBinderArgumentResolvers == null) {
 			List<HandlerMethodArgumentResolver> resolvers = getDefaultInitBinderArgumentResolvers();
 			this.initBinderArgumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
 		}
+		// 返回值处理器
 		if (this.returnValueHandlers == null) {
+			// 获取默认的返回值解析器
 			List<HandlerMethodReturnValueHandler> handlers = getDefaultReturnValueHandlers();
 			this.returnValueHandlers = new HandlerMethodReturnValueHandlerComposite().addHandlers(handlers);
 		}
@@ -635,6 +641,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		List<HandlerMethodArgumentResolver> resolvers = new ArrayList<>();
 
 		// Annotation-based argument resolution
+		// RequestParam 参数解析器
 		resolvers.add(new RequestParamMethodArgumentResolver(getBeanFactory(), false));
 		resolvers.add(new RequestParamMapMethodArgumentResolver());
 		resolvers.add(new PathVariableMethodArgumentResolver());
@@ -642,8 +649,12 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		resolvers.add(new MatrixVariableMethodArgumentResolver());
 		resolvers.add(new MatrixVariableMapMethodArgumentResolver());
 		resolvers.add(new ServletModelAttributeMethodProcessor(false));
+
+		// 处理那个 ResponseBody 的
 		resolvers.add(new RequestResponseBodyMethodProcessor(getMessageConverters(), this.requestResponseBodyAdvice));
 		resolvers.add(new RequestPartMethodArgumentResolver(getMessageConverters(), this.requestResponseBodyAdvice));
+
+		// RequestHeader 方法参数解析器
 		resolvers.add(new RequestHeaderMethodArgumentResolver(getBeanFactory()));
 		resolvers.add(new RequestHeaderMapMethodArgumentResolver());
 		resolvers.add(new ServletCookieValueMethodArgumentResolver(getBeanFactory()));
@@ -669,6 +680,8 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 
 		// Catch-all
 		resolvers.add(new RequestParamMethodArgumentResolver(getBeanFactory(), true));
+
+		// 兜底的参数解析器
 		resolvers.add(new ServletModelAttributeMethodProcessor(true));
 
 		return resolvers;
@@ -772,32 +785,53 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
 
 		ModelAndView mav;
+		// 检查当前请求的method是否为支持的method(默认Null,可通过继承AbstractController设置supportedMethods)
+		// 检查当前请求是否必须session  (默认false,可通过继承AbstractController设置requireSession)
 		checkRequest(request);
 
 		// Execute invokeHandlerMethod in synchronized block if required.
+		/**
+		 * 判断当前是否需要支持在同一个session中只能线性地处理请求
+		 * 因为锁是通过 synchronized 是 JVM 进程级，所以在分布式环境下，
+		 * 无法达到同步相同 Session 的功能。默认情况下，synchronizeOnSession 为 false
+		 */
 		if (this.synchronizeOnSession) {
+			// 获取当前请求的session对象
 			HttpSession session = request.getSession(false);
 			if (session != null) {
+				// 为当前session生成一个唯一的可以用于锁定的key
 				Object mutex = WebUtils.getSessionMutex(session);
 				synchronized (mutex) {
+					// 对HandlerMethod进行参数等的适配处理，并调用目标handler
 					mav = invokeHandlerMethod(request, response, handlerMethod);
 				}
 			}
 			else {
 				// No HttpSession available -> no mutex necessary
+				// 核心, 重点
+				// 如果当前不存在session，则直接对HandlerMethod进行适配
 				mav = invokeHandlerMethod(request, response, handlerMethod);
 			}
 		}
 		else {
 			// No synchronization on session demanded at all...
+			// 执行方法, 核心, 得到ModelAndView对象
+			// 如果当前不需要对session进行同步处理，则直接对HandlerMethod进行适配
 			mav = invokeHandlerMethod(request, response, handlerMethod);
 		}
 
+		// 响应头中是否有Cache-Control, 如果没有则按springMVC中的配置来设置
 		if (!response.containsHeader(HEADER_CACHE_CONTROL)) {
+			// 如果当前SessionAttribute中存在配置的attributes，则为其设置过期时间。
+			// 这里SessionAttribute主要是通过@SessionAttribute注解生成的
+			// 如果用@SessionAttributes注解, 则把SpringMvc中设置的cacheSeconds设置给Cache-Control
 			if (getSessionAttributesHandler(handlerMethod).hasSessionAttributes()) {
 				applyCacheSeconds(response, this.cacheSecondsForSessionAttributeHandlers);
 			}
 			else {
+				// 如果当前不存在SessionAttributes，则判断当前是否存在Cache-Control设置，
+				// 如果存在，则按照该设置进行response处理，如果不存在，则设置response中的
+				// Cache的过期时间为-1，即立即失效
 				prepareResponse(response);
 			}
 		}
@@ -836,36 +870,69 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 	protected ModelAndView invokeHandlerMethod(HttpServletRequest request,
 			HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
 
+		// 把我们的请求request包装成 ServletWebRequest
 		ServletWebRequest webRequest = new ServletWebRequest(request, response);
 		try {
+			// 获取容器中全局配置的InitBinder和当前HandlerMethod所对应的Controller中
+			// 配置的InitBinder，用于进行参数的绑定
 			WebDataBinderFactory binderFactory = getDataBinderFactory(handlerMethod);
+
+			// 获取容器中全局配置的ModelAttribute和当前HandlerMethod所对应的Controller 中配置的ModelAttribute，
+			// 这些配置的方法将会在目标方法调用之前进行调用
 			ModelFactory modelFactory = getModelFactory(handlerMethod, binderFactory);
 
+			// 封装handlerMethod，会在调用前解析参数、调用后对返回值进行处理
 			ServletInvocableHandlerMethod invocableMethod = createInvocableHandlerMethod(handlerMethod);
+
+			// 设置方法阐述解析器, 返回值解析器
 			if (this.argumentResolvers != null) {
+				// 让 invocableMethod 拥有参数解析能力
 				invocableMethod.setHandlerMethodArgumentResolvers(this.argumentResolvers);
 			}
 			if (this.returnValueHandlers != null) {
+				// 让invocableMethod拥有返回值处理能力
+				// 异步servlet主要是在这里做的, CallableMethodReturnValueHandler, DeferredResultMethodReturnValueHandler
 				invocableMethod.setHandlerMethodReturnValueHandlers(this.returnValueHandlers);
 			}
+			// 让invocableMethod拥有InitBinder解析能力
 			invocableMethod.setDataBinderFactory(binderFactory);
+			// 设置ParameterNameDiscoverer，该对象将按照一定的规则获取当前参数的名称
 			invocableMethod.setParameterNameDiscoverer(this.parameterNameDiscoverer);
 
+			// ModelAndView处理容器
 			ModelAndViewContainer mavContainer = new ModelAndViewContainer();
+			// 将request的Attribute复制一份到ModelMap
 			mavContainer.addAllAttributes(RequestContextUtils.getInputFlashMap(request));
+			// 调用我们标注了@ModelAttribute的方法,主要是为我们的目标方法预加载
 			modelFactory.initModel(webRequest, mavContainer, invocableMethod);
+			// 重定向的时候，忽略model中的数据 默认false
 			mavContainer.setIgnoreDefaultModelOnRedirect(this.ignoreDefaultModelOnRedirect);
 
+			/**
+			 * 获取当前的 AsyncWebRequest，这里 AsyncWebRequest 的主要作用是用于判断目标handler的返回值是否为WebAsyncTask或DeferredResult，如果是这两种中的一种，
+			 * 则说明当前请求的处理应该是异步的。所谓的异步，指的是当前请求会将Controller中
+			 * 封装的业务逻辑放到一个线程池中进行调用，待该调用有返回结果之后再返回到response中。
+			 * 这种处理的优点在于用于请求分发的线程能够解放出来，从而处理更多的请求,提高吞吐。
+			 * 只有待目标任务完成之后才会回来将该异步任务的结果返回。
+			 */
 			AsyncWebRequest asyncWebRequest = WebAsyncUtils.createAsyncWebRequest(request, response);
 			asyncWebRequest.setTimeout(this.asyncRequestTimeout);
 
+			// 封装异步任务的线程池、request、interceptors到WebAsyncManager中
+			// 这个对象是将本次请求的资源属性做统一管理,
 			WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+			// 设置异步执行线程池
 			asyncManager.setTaskExecutor(this.taskExecutor);
+			// 提供对异步处理的支持
 			asyncManager.setAsyncWebRequest(asyncWebRequest);
+			// 异步调用拦截器
 			asyncManager.registerCallableInterceptors(this.callableInterceptors);
 			asyncManager.registerDeferredResultInterceptors(this.deferredResultInterceptors);
 
+			// 这里就是用于判断当前请求是否有异步任务结果的，如果存在，则对异步任务结果进行封装
+			// 异步servlet doDispatch重新被调用, 再次回调hasConcurrentResult会返回true，实际就是获取到response，最后返回响应
 			if (asyncManager.hasConcurrentResult()) {
+				// 获取异步执行结果
 				Object result = asyncManager.getConcurrentResult();
 				mavContainer = (ModelAndViewContainer) asyncManager.getConcurrentResultContext()[0];
 				asyncManager.clearConcurrentResult();
@@ -873,14 +940,23 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 					String formatted = LogFormatUtils.formatValue(result, !traceOn);
 					return "Resume with async result [" + formatted + "]";
 				});
+				// 替换invocableMethod(原先异步处理的方法返回值是Callable现在直接返回结果)
 				invocableMethod = invocableMethod.wrapConcurrentResult(result);
 			}
 
+			// 核心
+			// 对请求参数进行处理，调用目标HandlerMethod，并且将返回值封装为一个ModelAndView对象
 			invocableMethod.invokeAndHandle(webRequest, mavContainer);
+
+
+			// 如果异步处理正在执行(已经开始,尚未结束) 立刻返回
+			// 同时DispatcherServlet也直接返回 等待AsyncContext.dispatch()调用再次进入doDispatch()方法
 			if (asyncManager.isConcurrentHandlingStarted()) {
 				return null;
 			}
 
+			// 对封装的ModelAndView进行处理，主要是判断当前请求是否进行了重定向，如果进行了重定向，
+			// 还会判断是否需要将FlashAttributes封装到新的请求中
 			return getModelAndView(mavContainer, modelFactory, webRequest);
 		}
 		finally {

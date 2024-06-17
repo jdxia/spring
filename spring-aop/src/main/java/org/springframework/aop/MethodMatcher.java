@@ -62,7 +62,8 @@ public interface MethodMatcher {
 	 * @param targetClass the target class
 	 * @return whether or not this method matches statically
 	 */
-	boolean matches(Method method, Class<?> targetClass);
+	boolean matches(Method method, Class<?> targetClass);//在这里有一个静态切入点和动态切入点的概念, 静态切入点：只进行一次检测, 动态切入点：每次切入都检测
+
 
 	/**
 	 * Is this MethodMatcher dynamic, that is, must a final call be made on the
@@ -74,7 +75,7 @@ public interface MethodMatcher {
 	 * {@link #matches(java.lang.reflect.Method, Class, Object[])} method
 	 * is required if static matching passed
 	 */
-	boolean isRuntime();
+	boolean isRuntime(); // 判断静态切入点和动态切入点的标志，return true表示动态
 
 	/**
 	 * Check whether there a runtime (dynamic) match for this method,

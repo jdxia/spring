@@ -75,6 +75,7 @@ public abstract class ApplicationObjectSupport implements ApplicationContextAwar
 			}
 			this.applicationContext = context;
 			this.messageSourceAccessor = new MessageSourceAccessor(context);
+			// 看这个
 			initApplicationContext(context);
 		}
 		else {
@@ -121,6 +122,7 @@ public abstract class ApplicationObjectSupport implements ApplicationContextAwar
 	 * @see #setApplicationContext
 	 */
 	protected void initApplicationContext(ApplicationContext context) throws BeansException {
+		// 往下
 		initApplicationContext();
 	}
 
@@ -133,6 +135,7 @@ public abstract class ApplicationObjectSupport implements ApplicationContextAwar
 	 * @see #setApplicationContext
 	 */
 	protected void initApplicationContext() throws BeansException {
+		// 看子类 org.springframework.web.servlet.handler.AbstractDetectingUrlHandlerMapping.initApplicationContext
 	}
 
 

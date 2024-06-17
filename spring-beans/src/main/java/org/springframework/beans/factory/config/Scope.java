@@ -60,6 +60,11 @@ import org.springframework.lang.Nullable;
 public interface Scope {
 
 	/**
+	 * 返回当前作用域中name对应的bean对象
+	 * name：需要检索的bean的名称
+	 * objectFactory：如果name对应的bean在当前作用域中没有找到，那么可以调用这个ObjectFactory来创建这个对象
+	 */
+	/**
 	 * Return the object with the given name from the underlying scope,
 	 * {@link org.springframework.beans.factory.ObjectFactory#getObject() creating it}
 	 * if not found in the underlying storage mechanism.
@@ -73,6 +78,9 @@ public interface Scope {
 	 */
 	Object get(String name, ObjectFactory<?> objectFactory);
 
+	/**
+	 * 将name对应的bean从当前作用域中移除
+	 */
 	/**
 	 * Remove the object with the given {@code name} from the underlying scope.
 	 * <p>Returns {@code null} if no object was found; otherwise
@@ -92,6 +100,9 @@ public interface Scope {
 	@Nullable
 	Object remove(String name);
 
+	/**
+	 * 用于注册销毁回调，如果想要销毁相应的对象,则由Spring容器注册相应的销毁回调，而由自定义作用域选择是不是要销毁相应的对象
+	 */
 	/**
 	 * Register a callback to be executed on destruction of the specified
 	 * object in the scope (or at destruction of the entire scope, if the
@@ -124,6 +135,9 @@ public interface Scope {
 	void registerDestructionCallback(String name, Runnable callback);
 
 	/**
+	 * 用于解析相应的上下文数据，比如request作用域将返回request中的属性。
+	 */
+	/**
 	 * Resolve the contextual object for the given key, if any.
 	 * E.g. the HttpServletRequest object for key "request".
 	 * @param key the contextual key
@@ -133,6 +147,9 @@ public interface Scope {
 	@Nullable
 	Object resolveContextualObject(String key);
 
+	/**
+	 * 作用域的会话标识，比如session作用域将是sessionId
+	 */
 	/**
 	 * Return the <em>conversation ID</em> for the current underlying scope, if any.
 	 * <p>The exact meaning of the conversation ID depends on the underlying

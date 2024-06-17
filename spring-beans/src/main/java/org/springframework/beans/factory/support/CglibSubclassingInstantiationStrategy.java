@@ -81,6 +81,7 @@ public class CglibSubclassingInstantiationStrategy extends SimpleInstantiationSt
 			@Nullable Constructor<?> ctor, Object... args) {
 
 		// Must generate CGLIB subclass...
+		// 看 instantiate 方法
 		return new CglibSubclassCreator(bd, owner).instantiate(ctor, args);
 	}
 
@@ -121,6 +122,7 @@ public class CglibSubclassingInstantiationStrategy extends SimpleInstantiationSt
 			else {
 				try {
 					Constructor<?> enhancedSubclassConstructor = subclass.getConstructor(ctor.getParameterTypes());
+					// 得到代理对象
 					instance = enhancedSubclassConstructor.newInstance(args);
 				}
 				catch (Exception ex) {
@@ -132,8 +134,18 @@ public class CglibSubclassingInstantiationStrategy extends SimpleInstantiationSt
 			// enhanced class (via the Enhancer) in order to avoid memory leaks.
 			Factory factory = (Factory) instance;
 			factory.setCallbacks(new Callback[] {NoOp.INSTANCE,
+					// @Lookup注解
 					new LookupOverrideMethodInterceptor(this.beanDefinition, this.owner),
+					/**
+					 * 在注解上好像没有提供, 在xml里面有提供, 把某一个方法替换成另一个方法
+					 * <bean id="myReplace" class="xx.MyReplace"> 这个对象需要实现MethodReplacer接口
+					 * <bean>
+					 *     <replaced-method name="a" replacer="myReplace" />
+					 * </bean>
+					*/
 					new ReplaceOverrideMethodInterceptor(this.beanDefinition, this.owner)});
+
+			// 最终会生成一个代理对象
 			return instance;
 		}
 
@@ -231,13 +243,22 @@ public class CglibSubclassingInstantiationStrategy extends SimpleInstantiationSt
 			this.owner = owner;
 		}
 
-		@Override
+		@Override // method是当前正在执行的方法
 		public Object intercept(Object obj, Method method, Object[] args, MethodProxy mp) throws Throwable {
+			/**
+			 * @Lookup("orderService")
+			 * public OrderService a() {return null;}
+			 * 方法上加了@Lookup注解，会生成一个代理对象，调用a方法的时候, 不是看你返回值 ,而是根据注解去容器里面getBean("orderService")
+			 * 不会真正执行a方法
+			 */
+
 			// Cast is safe, as CallbackFilter filters are used selectively.
+			// 当前执行的方法上有没有加Lookup注解
 			LookupOverride lo = (LookupOverride) getBeanDefinition().getMethodOverrides().getOverride(method);
 			Assert.state(lo != null, "LookupOverride not found");
 			Object[] argsToUse = (args.length > 0 ? args : null);  // if no-arg, don't insist on args at all
 			if (StringUtils.hasText(lo.getBeanName())) {
+				// 直接getBean, 就是getBean(Lookup上标注的)
 				return (argsToUse != null ? this.owner.getBean(lo.getBeanName(), argsToUse) :
 						this.owner.getBean(lo.getBeanName()));
 			}

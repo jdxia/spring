@@ -257,12 +257,15 @@ public abstract class AbstractMessageConverterMethodArgumentResolver implements 
 	 * @see #isBindExceptionRequired
 	 */
 	protected void validateIfApplicable(WebDataBinder binder, MethodParameter parameter) {
+		// 获取方法前面定义的注解
 		Annotation[] annotations = parameter.getParameterAnnotations();
 		for (Annotation ann : annotations) {
+			// 看方法前面是不是 Validated 注解
 			Validated validatedAnn = AnnotationUtils.getAnnotation(ann, Validated.class);
 			if (validatedAnn != null || ann.annotationType().getSimpleName().startsWith("Valid")) {
 				Object hints = (validatedAnn != null ? validatedAnn.value() : AnnotationUtils.getValue(ann));
 				Object[] validationHints = (hints instanceof Object[] ? (Object[]) hints : new Object[] {hints});
+				// 往下
 				binder.validate(validationHints);
 				break;
 			}

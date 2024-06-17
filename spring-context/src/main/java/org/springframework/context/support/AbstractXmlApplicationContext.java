@@ -80,17 +80,27 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	@Override
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
 		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
+		// DefaultListableBeanFactory 实现了 BeanDefinitionRegistry 接口，所以在初始化 XmlBeanDefinitionReader 时
+		// 将该 beanFactory 传入 XmlBeanDefinitionReader 的构造方法中。
+		// 从名字也能看出来它的功能，这是一个用于从 .xml文件 中读取 BeanDefinition 的读取器
 		XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
+		// 为 beanDefinition 读取器设置 资源加载器，由于本类的基类 AbstractApplicationContext
+		// 继承了 DefaultResourceLoader，因此，本容器自身也是一个资源加载器
 		beanDefinitionReader.setResourceLoader(this);
+		// 为 beanDefinitionReader 设置用于解析的 SAX 实例解析器，SAX（simple API for XML）是另一种XML解析方法。
+		// 相比于DOM，SAX速度更快，占用内存更小。它逐行扫描文档，一边扫描一边解析。相比于先将整个XML文件扫描进内存，
+		// 再进行解析的DOM，SAX可以在解析文档的任意时刻停止解析，但操作也比DOM复杂。
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
+		// 初始化 beanDefinition 读取器，该方法同时启用了 XML 的校验机制
 		initBeanDefinitionReader(beanDefinitionReader);
+		// 用传进来的 XmlBeanDefinitionReader 读取器读取 .xml 文件中配置的 bean
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
@@ -119,12 +129,27 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	 * @see #getResourcePatternResolver
 	 */
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
+		/**
+		 * ClassPathXmlApplicationContext 与 FileSystemXmlApplicationContext
+		 * 在这里的调用出现分歧，各自按不同的方式加载解析 Resource 资源
+		 * 最后在具体的解析和 BeanDefinition 定位上又会殊途同归
+		 */
+
+		// 获取存放了 BeanDefinition 的所有 Resource，FileSystemXmlApplicationContext 中未对
+		// getConfigResources() 进行重写，所以调用父类的，return null。
+		// 而 ClassPathXmlApplicationContext 对该方法进行了重写，返回设置的值
 		Resource[] configResources = getConfigResources();
+		//第一个if是看有没有系统指定的配置文件，如果没有的话就走第二个if
 		if (configResources != null) {
+			// 这里调用的是其父类 AbstractBeanDefinitionReader 中的方法，解析加载 BeanDefinition对象
 			reader.loadBeanDefinitions(configResources);
 		}
+		// 调用其父类 AbstractRefreshableConfigApplicationContext 中的实现，优先返回
+		// FileSystemXmlApplicationContext 构造方法中调用 setConfigLocations() 方法设置的资源路径
 		String[] configLocations = getConfigLocations();
+		// 加载我们最开始传入的classpath:application-ioc.xml
 		if (configLocations != null) {
+			// 这里调用其父类 AbstractBeanDefinitionReader 的方法从配置位置加载 BeanDefinition
 			reader.loadBeanDefinitions(configLocations);
 		}
 	}

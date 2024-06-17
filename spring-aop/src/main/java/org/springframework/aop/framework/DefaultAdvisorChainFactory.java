@@ -53,17 +53,24 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 
 		// This is somewhat tricky... We have to process introductions first,
 		// but we need to preserve order in the ultimate list.
+		// 创建拦截器集合长度是增强器的长度
 		AdvisorAdapterRegistry registry = GlobalAdvisorAdapterRegistry.getInstance();
+		// 从proxyFactory中拿到设置的Advice(添加的时候被封装成了DefaultPointcutAdvisor)
+		// 添加的时候会控制顺序
 		Advisor[] advisors = config.getAdvisors();
 		List<Object> interceptorList = new ArrayList<>(advisors.length);
 		Class<?> actualClass = (targetClass != null ? targetClass : method.getDeclaringClass());
 		Boolean hasIntroductions = null;
 
 		for (Advisor advisor : advisors) {
+			//  判断增强器是不是PointcutAdvisor
 			if (advisor instanceof PointcutAdvisor) {
 				// Add it conditionally.
+				// 把增强器转为PointcutAdvisor
 				PointcutAdvisor pointcutAdvisor = (PointcutAdvisor) advisor;
+				// 如果是预先筛选过或者advisor适用于目标类, 先匹配类
 				if (config.isPreFiltered() || pointcutAdvisor.getPointcut().getClassFilter().matches(actualClass)) {
+					// 进行方法级别的筛选, mm就是方法匹配器
 					MethodMatcher mm = pointcutAdvisor.getPointcut().getMethodMatcher();
 					boolean match;
 					if (mm instanceof IntroductionAwareMethodMatcher) {
@@ -76,7 +83,16 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 						match = mm.matches(method, actualClass);
 					}
 					if (match) {
+						// 如果匹配把Advisor封装成为Interceptor, 当前Advisor中的Advice可能既是MethodBeforeAdvice
 						MethodInterceptor[] interceptors = registry.getInterceptors(advisor);
+						/**
+						 * 如果是动态切入点
+						 * 比如methodMather匹配test方法匹配到多个, 如果这个是true, 会把目标方法的参数传给另一个方法
+						 * MethodMatcher 的 boolean matches(Method method, Class<?> targetClass, Object... args);
+						 *
+						 * 在这个方法里面看, 这个方法的参数是不是符合要求, 会把这个包装成 InterceptorAndDynamicMethodMatcher
+						 * InterceptorAndDynamicMethodMatcher 会在 {@link ReflectiveMethodInvocation#proceed()} 里面做判断
+						 */
 						if (mm.isRuntime()) {
 							// Creating a new object instance in the getInterceptors() method
 							// isn't a problem as we normally cache created chains.
@@ -90,6 +106,7 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 					}
 				}
 			}
+			// 如果advisor是IntroductionAdvisor的实例
 			else if (advisor instanceof IntroductionAdvisor) {
 				IntroductionAdvisor ia = (IntroductionAdvisor) advisor;
 				if (config.isPreFiltered() || ia.getClassFilter().matches(actualClass)) {
@@ -97,6 +114,7 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 					interceptorList.addAll(Arrays.asList(interceptors));
 				}
 			}
+			// 以上两种都不是
 			else {
 				Interceptor[] interceptors = registry.getInterceptors(advisor);
 				interceptorList.addAll(Arrays.asList(interceptors));

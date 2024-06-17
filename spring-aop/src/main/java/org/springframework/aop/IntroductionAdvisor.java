@@ -29,7 +29,7 @@ package org.springframework.aop;
  * @since 04.04.2003
  * @see IntroductionInterceptor
  */
-public interface IntroductionAdvisor extends Advisor, IntroductionInfo {
+public interface IntroductionAdvisor extends Advisor, IntroductionInfo { //为AOP提供类级别的拦截
 
 	/**
 	 * Return the filter determining which target classes this introduction

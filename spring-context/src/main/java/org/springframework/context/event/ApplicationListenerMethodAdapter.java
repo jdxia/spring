@@ -102,9 +102,12 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 				AopUtils.getMostSpecificMethod(method, targetClass) : this.method);
 		this.methodKey = new AnnotatedElementKey(this.targetMethod, targetClass);
 
+		// 处理@EventListener注解信息  备注：至少指定一个监听类型
 		EventListener ann = AnnotatedElementUtils.findMergedAnnotation(this.targetMethod, EventListener.class);
 		this.declaredEventTypes = resolveDeclaredEventTypes(method, ann);
+		// 拿到条件信息  SpEL中有用
 		this.condition = (ann != null ? ann.condition() : null);
+		// 从此处也能看出，它是支持在方法上标注@Order来控制执行顺序的
 		this.order = resolveOrder(this.targetMethod);
 	}
 
@@ -148,11 +151,14 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 	}
 
 
-	@Override
+	@Override // 事件触发方法
 	public void onApplicationEvent(ApplicationEvent event) {
 		processEvent(event);
 	}
 
+	// 判断该处理器  是否支持当前类型的事件
+	// 判断思路很简单：类型匹配上了 就表示可以处理这个事件（支持事件的泛型依赖匹配~~~）
+	// 关于condition 是在process处理的时候会生效的
 	@Override
 	public boolean supportsEventType(ResolvableType eventType) {
 		for (ResolvableType declaredEventType : this.declaredEventTypes) {
@@ -185,10 +191,43 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 	 * matches and handling a non-null result, if any.
 	 */
 	public void processEvent(ApplicationEvent event) {
+		/**
+		 * 处理事务事件的相关参数，这里主要是判断 TransactionalEventListener 注解中是否配置了value或classes属性，
+		 * 如果配置了，则将方法参数转换为该指定类型传给监听的方法；如果没有配置，则判断
+		 * 目标方法是ApplicationEvent类型还是PayloadApplicationEvent类型，是则转换为该类型传入
+		 */
 		Object[] args = resolveArguments(event);
+		/**
+		 * 这里主要是获取TransactionalEventListener注解中的condition属性，
+		 * 然后通过 Spring expression language 将其与目标类和方法进行匹配
+		 */
 		if (shouldHandle(event, args)) {
+			// 通过处理得到的参数借助于反射调用事务监听方法
+			// 就是执行目标方法，我们一般返回值都是void，所以就是null
+			// 但是，但是，但是注意了，此处若返回的不是null，还有处理~~~~非常给力：
 			Object result = doInvoke(args);
+
+			// 这一步就是@EventListener最大的优势。如果它的返回值不为null，那么它可以行使事件链，可以继续发布事件
+			// 把返回值当作事件继续publish（返回值可以是个Object，最终被包装成payload事件~~~~）
 			if (result != null) {
+				/**
+				 * 对方法的返回值进行处理
+				 * 如果返回值是数组或者Collection，会把里面内容当作事件循环publishEvent
+				 * 如果就是个POJO，那就直接publish
+				 * 事件的传递性 就这么的来了，强大啊
+				 @EventListener(value = {ContextRefreshedEvent.class})
+				 public List<Child> handle(Object o) {
+					 List<Child> childList = new ArrayList<>();
+					 childList.add(new Child("1"));
+					 return childList;
+				 }
+
+				 // 因为上个方法有返回  所以事件会传递到此处
+				 @EventListener(Child.class)
+				 public void handChild(Child c) {
+				 	System.out.println(c.getName() + " 发来了事件");
+				 }
+				 */
 				handleResult(result);
 			}
 			else {
@@ -203,15 +242,21 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 	 * Can return {@code null} to indicate that no suitable arguments could be resolved
 	 * and therefore the method should not be invoked at all for the specified event.
 	 */
-	@Nullable
+	@Nullable  // 处理事务监听方法的参数
 	protected Object[] resolveArguments(ApplicationEvent event) {
+		// 获取发布事务事件时传入的参数类型
 		ResolvableType declaredEventType = getResolvableType(event);
 		if (declaredEventType == null) {
 			return null;
 		}
+		// 如果事务监听方法的参数个数为0，则直接返回
 		if (this.method.getParameterCount() == 0) {
 			return new Object[0];
 		}
+		// 如果事务监听方法的参数不为ApplicationEvent或PayloadApplicationEvent，则直接将发布事务
+		// 事件时传入的参数当做事务监听方法的参数传入。从这里可以看出，如果事务监听方法的参数不是
+		// ApplicationEvent或PayloadApplicationEvent类型，那么其参数必须只能有一个，并且这个
+		// 参数必须与发布事务事件时传入的参数一致
 		Class<?> declaredEventClass = declaredEventType.toClass();
 		if (!ApplicationEvent.class.isAssignableFrom(declaredEventClass) &&
 				event instanceof PayloadApplicationEvent) {
@@ -220,16 +265,21 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 				return new Object[] {payload};
 			}
 		}
+		// 如果参数类型为ApplicationEvent或PayloadApplicationEvent，则直接将其传入事务事件方法
 		return new Object[] {event};
 	}
 
+	// 对事务事件方法的返回值进行处理，这里的处理方式主要是将其作为一个事件继续发布出去，这样就可以在
+	// 一个统一的位置对事务事件的返回值进行处理
 	protected void handleResult(Object result) {
+		// 如果返回值是数组类型，则对数组元素一个一个进行发布
 		if (reactiveStreamsPresent && new ReactiveResultHandler().subscribeToPublisher(result)) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Adapted to reactive result: " + result);
 			}
 		}
 		else if (result instanceof CompletionStage) {
+			// 如果返回值是集合类型，则对集合进行遍历，并且发布集合中的每个元素
 			((CompletionStage<?>) result).whenComplete((event, ex) -> {
 				if (ex != null) {
 					handleAsyncError(ex);
@@ -243,6 +293,7 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 			((ListenableFuture<?>) result).addCallback(this::publishEvents, this::handleAsyncError);
 		}
 		else {
+			// 如果返回值是一个对象，则直接将其进行发布
 			publishEvents(result);
 		}
 	}
@@ -276,13 +327,18 @@ public class ApplicationListenerMethodAdapter implements GenericApplicationListe
 		logger.error("Unexpected error occurred in asynchronous listener", t);
 	}
 
+	// 判断事务事件方法方法是否需要进行事务事件处理
 	private boolean shouldHandle(ApplicationEvent event, @Nullable Object[] args) {
 		if (args == null) {
 			return false;
 		}
 		String condition = getCondition();
+		// condition默认是空串  只有配置了才会去执行~~~  是用的解析器是EventExpressionEvaluator
 		if (StringUtils.hasText(condition)) {
 			Assert.notNull(this.evaluator, "EventExpressionEvaluator must not be null");
+
+			// 最终委托给EventExpressionEvaluator去解析
+			// 备注EventExpressionEvaluator是个内部使用的类，只有此处解析用到了
 			return this.evaluator.condition(
 					condition, event, this.targetMethod, this.methodKey, args, this.applicationContext);
 		}

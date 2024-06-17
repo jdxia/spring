@@ -57,6 +57,12 @@ public class CandidateComponentsIndex {
 		this.index = parseIndex(content);
 	}
 
+	/**
+	 * 解析  MATE-INF\spring.components 转换成 map
+	 *
+	 * @param content
+	 * @return
+	 */
 	private static MultiValueMap<String, Entry> parseIndex(List<Properties> content) {
 		MultiValueMap<String, Entry> index = new LinkedMultiValueMap<>();
 		for (Properties entry : content) {

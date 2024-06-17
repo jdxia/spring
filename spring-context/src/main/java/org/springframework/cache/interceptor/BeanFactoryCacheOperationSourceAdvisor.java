@@ -30,6 +30,13 @@ import org.springframework.lang.Nullable;
  */
 @SuppressWarnings("serial")
 public class BeanFactoryCacheOperationSourceAdvisor extends AbstractBeanFactoryPointcutAdvisor {
+	/**
+	 * 继承: AbstractBeanFactoryPointcutAdvisor
+	 *
+	 * 作用是在每个bean的初始化时
+	 * 			(每个bean都会被加载成 advised 对象 -> 有 targetSource 和 Advisor[] 数组),
+	 * 			每个bean被调用方法的时候都是先遍历advisor的方法，然后在调用原生bean(也就是targetSource)的方法，实现了aop的效果
+	 */
 
 	@Nullable
 	private CacheOperationSource cacheOperationSource;
@@ -60,6 +67,13 @@ public class BeanFactoryCacheOperationSourceAdvisor extends AbstractBeanFactoryP
 		this.pointcut.setClassFilter(classFilter);
 	}
 
+	/**
+	 * getPointcut() 也就是 CacheOperationSourcePointcut
+	 *
+	 * 然后调用CacheOperationSourcePointcut.matches()方法, 用来匹配对应的bean,
+	 * 假设bean在BeanFactoryCacheOperationSourceAdvisor的扫描中 matchs() 方法返回了true,
+	 * 结果就是在每个bean的方法被调用的时候 CacheInterceptor 中的 invoke() 方法就会被调用
+	 */
 	@Override
 	public Pointcut getPointcut() {
 		return this.pointcut;

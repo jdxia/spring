@@ -224,12 +224,20 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 		else {
 			HttpServletRequest request = inputMessage.getServletRequest();
 			List<MediaType> acceptableTypes = getAcceptableMediaTypes(request);
+
+			// 如果没有设置MediaType
+			// 通过HttpMessageConverter来判断要返回的结果response类型
+			// 遍历spring容器中所有的HttpMessageConverter, 通过canWrite方法判断
+			// 通过HttpMessageConverter 介入、找到最合适的HttpMessageConverter， 获取对应设定的MediaType
+			// 比如返回的是String, 对应的是StringHttpMessageConverter
 			List<MediaType> producibleTypes = getProducibleMediaTypes(request, valueType, targetType);
 
 			if (body != null && producibleTypes.isEmpty()) {
 				throw new HttpMessageNotWritableException(
 						"No converter found for return value of type: " + valueType);
 			}
+
+			// 找到双方都接受的MediaType, 请求最想看到的是text/html格式, 就看服务端支不支持
 			List<MediaType> mediaTypesToUse = new ArrayList<>();
 			for (MediaType requestedType : acceptableTypes) {
 				for (MediaType producibleType : producibleTypes) {

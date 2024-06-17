@@ -40,10 +40,12 @@ import org.springframework.core.annotation.AliasFor;
  * @author Sam Brannen
  * @since 4.2
  */
+// @since 4.2 注解的方式提供的相对较晚，其实API的方式在第一个版本就已经提供了。
+// 值得注意的是，在这个注解上面有一个注解：`@EventListener`，所以表明其实这个注解也是个事件监听器。
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@EventListener
+@EventListener //有类似于注解继承的效果
 public @interface TransactionalEventListener {
 
 	/**
@@ -52,16 +54,29 @@ public @interface TransactionalEventListener {
 	 * <p>If no transaction is in progress, the event is not processed at
 	 * all unless {@link #fallbackExecution} has been enabled explicitly.
 	 */
+	/**
+	 * 这个注解取值有：
+	 *  BEFORE_COMMIT(指定目标方法在事务commit之前执行)
+	 *  AFTER_COMMIT(指定目标方法在事务commit之后执行)、
+	 *  AFTER_ROLLBACK(指定目标方法在事务rollback之后执行)
+	 *  AFTER_COMPLETION(指定目标方法在事务完成时执行，这里的完成是指无论事务是成功提交还是事务回滚了)
+	 *  各个值都代表什么意思表达什么功能，非常清晰
+	 *  需要注意的是：AFTER_COMMIT + AFTER_COMPLETION是可以同时生效的
+	 *  AFTER_ROLLBACK + AFTER_COMPLETION是可以同时生效的
+	 */
 	TransactionPhase phase() default TransactionPhase.AFTER_COMMIT;
 
 	/**
 	 * Whether the event should be processed if no transaction is running.
 	 */
+	// 表明若没有事务的时候，对应的event是否需要执行，默认值为false表示，没事务就不执行了。
 	boolean fallbackExecution() default false;
 
 	/**
 	 * Alias for {@link #classes}.
 	 */
+	// 这里巧妙用到了@AliasFor的能力，放到了@EventListener身上
+	// 注意：一般建议都需要指定此值，否则默认可以处理所有类型的事件，范围太广了。
 	@AliasFor(annotation = EventListener.class, attribute = "classes")
 	Class<?>[] value() default {};
 

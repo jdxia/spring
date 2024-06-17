@@ -63,6 +63,7 @@ abstract class ConfigurationClassUtils {
 
 	private static final Log logger = LogFactory.getLog(ConfigurationClassUtils.class);
 
+	// candidateIndicators静态常量初始化时包含了四个元素
 	private static final Set<String> candidateIndicators = new HashSet<>(8);
 
 	static {
@@ -84,21 +85,32 @@ abstract class ConfigurationClassUtils {
 	public static boolean checkConfigurationClassCandidate(
 			BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
 
+		//@Bean定义的配置类bean是不起作用, 因为@Bean定义的类的className是空
+		// 获取className
 		String className = beanDef.getBeanClassName();
+		//如果beanDef名字为空，或者beanDef中工厂方法名字factoryMethodName不为空，则直接返回false
 		if (className == null || beanDef.getFactoryMethodName() != null) {
 			return false;
 		}
 
+		// AnnotationMetadata表示某个类的注解信息, 但是并不一定要加载这个类
 		AnnotationMetadata metadata;
+		// 不是spring预先注册的类，会走这个if
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
 			metadata = ((AnnotatedBeanDefinition) beanDef).getMetadata();
 		}
+		// 此处return false，过滤了spring预先注册的几个类
 		else if (beanDef instanceof AbstractBeanDefinition && ((AbstractBeanDefinition) beanDef).hasBeanClass()) {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
 			Class<?> beanClass = ((AbstractBeanDefinition) beanDef).getBeanClass();
+			/**
+			 * 	排除我们启动时注册的几个spring内部类(BeanFactoryPostProcessor、BeanPostProcessor、AopInfrastructureBean、EventListenerFactory)，这几个内部类均为下面几个接口的实现或者扩展
+			 * 	第一次检查配置类会排除spring内部类，之后我们自定义的符合这几个接口的类不会进入逻辑，一般是AnnotatedBeanDefinition的实现
+			 * 	所有不会被排除
+			 */
 			if (BeanFactoryPostProcessor.class.isAssignableFrom(beanClass) ||
 					BeanPostProcessor.class.isAssignableFrom(beanClass) ||
 					AopInfrastructureBean.class.isAssignableFrom(beanClass) ||
@@ -109,6 +121,7 @@ abstract class ConfigurationClassUtils {
 		}
 		else {
 			try {
+				// asm技术获取该类的信息
 				MetadataReader metadataReader = metadataReaderFactory.getMetadataReader(className);
 				metadata = metadataReader.getAnnotationMetadata();
 			}
@@ -122,9 +135,27 @@ abstract class ConfigurationClassUtils {
 		}
 
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+
+		/**
+		 * 存在@Configuration注解, 并且proxyBeanMethods属性不为false(为true或者null)时, 就是Full配置类
+		 * @Configurable(proxyBeanMethods = true)
+		 * @ComponentScan("org.studyspring.**")
+		 * public class AppConfig {
+		 */
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+		/**
+		 * 不存在@Configuration注解, 但是存在@ComponentScan, @Import, @ImportResource注解, 或者存在@Bean方法时, 就是Lite配置类
+		 * 或者存在@Configuration注解, 但是proxyBeanMethods属性为false时, 也是Lite配置类
+		 * 或者不存在@Configuration注解, 但是存在@Bean方法时, 也是Lite配置类
+		 *
+		 * 因为含有@Configuration注解并且proxyBeanMethods属性为true的类走上面的判断
+		 * 走这个逻辑的有两种类
+		 *  1.含有@Configuration注解并且proxyBeanMethods属性为false
+		 *   2.含有@Bean，@Component，@ComponentScan，@Import，@ImportResource注解
+		 * 以上两种类设置为lite配置类
+		 */
 		else if (config != null || isConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
@@ -133,6 +164,7 @@ abstract class ConfigurationClassUtils {
 		}
 
 		// It's a full or lite configuration candidate... Let's determine the order value, if any.
+		// lite或者full配置类设置order优先级
 		Integer order = getOrder(metadata);
 		if (order != null) {
 			beanDef.setAttribute(ORDER_ATTRIBUTE, order);
@@ -150,11 +182,19 @@ abstract class ConfigurationClassUtils {
 	 */
 	public static boolean isConfigurationCandidate(AnnotationMetadata metadata) {
 		// Do not consider an interface or an annotation...
+		// 该类是接口直接返回false
 		if (metadata.isInterface()) {
 			return false;
 		}
 
 		// Any of the typical annotations found?
+		/**
+		 * 只要存在@Component, @ComponentScan, @Import, @ImportResource四个其中一个, 就是lite配置类
+		 * candidateIndicators是一个静态常量，在初始化时，包含了四个元素
+		 * 分别是@Bean，@Component，@ComponentScan，@Import，@ImportResource
+		 * 只要这个类上添加了这四种注解中的一个，这个类便是一个配置类
+		 * 这个类对应的BeanDefinition中的configurationClass属性值是lite
+		 */
 		for (String indicator : candidateIndicators) {
 			if (metadata.isAnnotated(indicator)) {
 				return true;
@@ -162,6 +202,8 @@ abstract class ConfigurationClassUtils {
 		}
 
 		// Finally, let's look for @Bean methods...
+		// 查找有没有加了@Bean注解的方法
+		// 只要类里面加了@Bean注解的方法就是lite配置类
 		try {
 			return metadata.hasAnnotatedMethods(Bean.class.getName());
 		}

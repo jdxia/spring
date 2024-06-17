@@ -30,6 +30,13 @@ import org.springframework.transaction.TransactionDefinition;
  * @see DefaultTransactionAttribute
  * @see RuleBasedTransactionAttribute
  */
+
+/**
+ * TransactionDefinition 类中定义的是事务的隔离级别和事务的传播属性
+ * <p>
+ * 需要理解的地方是，事务的隔离级别是数据库本身的事务功能，而事务的传播属性是Spring定义的
+ * 实现类看 RuleBasedTransactionAttribute
+ */
 public interface TransactionAttribute extends TransactionDefinition {
 
 	/**

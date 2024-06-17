@@ -120,6 +120,7 @@ import org.springframework.util.StringUtils;
 @SuppressWarnings("serial")
 public class JtaTransactionManager extends AbstractPlatformTransactionManager
 		implements TransactionFactory, InitializingBean, Serializable {
+	// 多数据库事务管理器（又叫做分布式事务管理器），其实现了JTA规范，使用XA协议进行两阶段提交
 
 	/**
 	 * Default JNDI location for the JTA UserTransaction. Many Java EE servers

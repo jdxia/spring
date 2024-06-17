@@ -42,15 +42,31 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 	public void registerBeanDefinitions(
 			AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
 
+		/**
+		 *  如有必要，注册AspectJ注释自动代理创建器。这里注册的自动代理创建器Aop实现的核心
+		 *  这里之所以说如有必要，是因为在调用该方法时，容器中可能已经创建了一个自动代理创建器，
+		 * 	如果这个自动代理创建器优先级更高或者与当前需要创建的自动代理创建器是同一类型，则不需要创建。
+		 *
+		 * 	注册一个 AnnotationAwareAspectJAutoProxyCreator 类型的bean
+		 * 	重点 往下看, 里面注册了 AnnotationAwareAspectJAutoProxyCreator
+		 */
 		AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
 
+		// 为组件AnnotationAwareAspectJAutoProxyCreator添加属性
+		// 获取@EnableAspectJAutoProxy注解
 		AnnotationAttributes enableAspectJAutoProxy =
 				AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
 		if (enableAspectJAutoProxy != null) {
+			// 如果有这2个属性, 就给BeanDefinition 对应的属性赋值
+
+			// 解析proxyTargetClass属性
 			if (enableAspectJAutoProxy.getBoolean("proxyTargetClass")) {
+				// 若为true，表示强制指定了要使用CGLIB，那就强制告知到时候使用CGLIB的动态代理方式
 				AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
 			}
+			//  解析exposeProxy属性
 			if (enableAspectJAutoProxy.getBoolean("exposeProxy")) {
+				// 告知，强制暴露Bean的代理对象到AopContext
 				AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);
 			}
 		}

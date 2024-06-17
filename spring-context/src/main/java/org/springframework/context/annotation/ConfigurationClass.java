@@ -48,20 +48,21 @@ import org.springframework.util.ClassUtils;
  */
 final class ConfigurationClass {
 
+	// 配置类的注解信息
 	private final AnnotationMetadata metadata;
 
 	private final Resource resource;
 
 	@Nullable
 	private String beanName;
-
+	// 当前类是由哪个配置类导入的
 	private final Set<ConfigurationClass> importedBy = new LinkedHashSet<>(1);
-
+	// 当前配置类所有的含@Bean注解的方法
 	private final Set<BeanMethod> beanMethods = new LinkedHashSet<>();
-
+	// @ImportResource相关的信息，这个不理会
 	private final Map<String, Class<? extends BeanDefinitionReader>> importedResources =
 			new LinkedHashMap<>();
-
+	// 配置类上的@Import注解导入的类，如果是实现了@ImportBeanDefinitionRegister接口，将会封装到这里
 	private final Map<ImportBeanDefinitionRegistrar, AnnotationMetadata> importBeanDefinitionRegistrars =
 			new LinkedHashMap<>();
 

@@ -53,6 +53,8 @@ public class MethodBeforeAdviceInterceptor implements MethodInterceptor, BeforeA
 	@Override
 	public Object invoke(MethodInvocation mi) throws Throwable {
 		this.advice.before(mi.getMethod(), mi.getArguments(), mi.getThis());
+		// 比如你执行完, 现在走到invoke里面, 看这个 proceed, 又回到了 org.springframework.aop.framework.ReflectiveMethodInvocation.proceed
+		// 形成一个循环
 		return mi.proceed();
 	}
 

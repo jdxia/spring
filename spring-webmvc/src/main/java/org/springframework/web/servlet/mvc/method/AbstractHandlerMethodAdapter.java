@@ -84,6 +84,7 @@ public abstract class AbstractHandlerMethodAdapter extends WebContentGenerator i
 	public final ModelAndView handle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
 
+		// 往下看 org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal
 		return handleInternal(request, response, (HandlerMethod) handler);
 	}
 

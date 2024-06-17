@@ -58,10 +58,16 @@ import org.springframework.util.ObjectUtils;
  * @see org.springframework.context.annotation.PropertySource
  */
 public abstract class PropertySource<T> {
+	/**
+	 * 表示一个键值对，代表着属性源
+	 * Spring内部是通过它来承载来自不同地方都的属性源的
+	 *
+	 * 该类重写了equals()和hashCode()方法，所以对于List的remove、indexOf方法都是有影响的
+	 */
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
-	protected final String name;
+	protected final String name;  // 该属性源的名字
 
 	protected final T source;
 
@@ -83,6 +89,7 @@ public abstract class PropertySource<T> {
 	 * that never query an actual source but rather return hard-coded values.
 	 */
 	@SuppressWarnings("unchecked")
+	// 若没有指定source 默认就是object  而不是null
 	public PropertySource(String name) {
 		this(name, (T) new Object());
 	}
@@ -109,6 +116,8 @@ public abstract class PropertySource<T> {
 	 * a more efficient algorithm if possible.
 	 * @param name the property name to find
 	 */
+	// getProperty是个抽象方法  子类去实现~~~
+	// 小细节：若对应的key存在但是值为null，此处也是返回false的  表示不包含~
 	public boolean containsProperty(String name) {
 		return (getProperty(name) != null);
 	}
@@ -131,6 +140,7 @@ public abstract class PropertySource<T> {
 	 * </ul>
 	 * <p>No properties other than {@code name} are evaluated.
 	 */
+	// 此处特别特别注意重写的这两个方法，我们发现它只和name有关，只要name相等  就代表着是同一个对象~~~~ 这点特别重要~
 	@Override
 	public boolean equals(@Nullable Object other) {
 		return (this == other || (other instanceof PropertySource &&
@@ -184,6 +194,7 @@ public abstract class PropertySource<T> {
 	 * are called.
 	 * @param name the name of the comparison {@code PropertySource} to be created and returned.
 	 */
+	// 静态方法：根据name就创建一个属性源~  ComparisonPropertySource是StubPropertySource的子类~
 	public static PropertySource<?> named(String name) {
 		return new ComparisonPropertySource(name);
 	}

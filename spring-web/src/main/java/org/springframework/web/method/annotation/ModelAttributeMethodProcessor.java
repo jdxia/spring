@@ -100,6 +100,7 @@ public class ModelAttributeMethodProcessor implements HandlerMethodArgumentResol
 	 */
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+		// 要么有 ModelAttribute 注解, 要么不是简单类型的, 它就支持
 		return (parameter.hasParameterAnnotation(ModelAttribute.class) ||
 				(this.annotationNotRequired && !BeanUtils.isSimpleProperty(parameter.getParameterType())));
 	}
@@ -121,9 +122,10 @@ public class ModelAttributeMethodProcessor implements HandlerMethodArgumentResol
 		Assert.state(mavContainer != null, "ModelAttributeMethodProcessor requires ModelAndViewContainer");
 		Assert.state(binderFactory != null, "ModelAttributeMethodProcessor requires WebDataBinderFactory");
 
+		// javaBean参数就是获取它的类首字母小写作为名字
 		String name = ModelFactory.getNameForParameter(parameter);
 		ModelAttribute ann = parameter.getParameterAnnotation(ModelAttribute.class);
-		if (ann != null) {
+		if (ann != null) {  // 设置不允许绑定
 			mavContainer.setBinding(name, ann.binding());
 		}
 

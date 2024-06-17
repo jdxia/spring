@@ -63,6 +63,11 @@ import org.springframework.web.server.ServerWebExchange;
  * needed to match the handler method to an incoming request.
  */
 public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMapping implements InitializingBean {
+	/**
+	 * 提供基础设施支持，例如: 路径解析,拦截器,跨域
+	 * 规定了根据request得到handler的模板方法处理流程getHandler,
+	 * 具体如何根据request寻找到某个handler,则是由子类实现
+	 */
 
 	/**
 	 * Bean name prefix for target beans behind scoped proxies. Used to exclude those
@@ -159,6 +164,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 		// Total includes detected mappings + explicit registrations via registerMapping..
 		int total = this.getHandlerMethods().size();
 
+		//简单的日志记录
 		if ((logger.isTraceEnabled() && total == 0) || (logger.isDebugEnabled() && total > 0) ) {
 			logger.debug(total + " mappings in " + formatMappingName());
 		}
@@ -177,6 +183,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			if (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
 				Class<?> beanType = null;
 				try {
+					//获取当前bean类型
 					beanType = obtainApplicationContext().getType(beanName);
 				}
 				catch (Throwable ex) {
@@ -185,7 +192,13 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 						logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 					}
 				}
+				/**
+				 * 默认AbstractHandlerMethodMapping是不提供对处理器的识别的,具体如何识别某个bean是不是handler,是由子类决定的
+				 * 这里是AbstractHandlerMethodMapping实现的,筛选规则如下:
+				 * 检验当前bean上是否存在Controller或者RequestMapping注解
+				 */
 				if (beanType != null && isHandler(beanType)) {
+					//如果当前bean是一个handler,那么需要探测出该handler内部所有handlerMethod实现
 					detectHandlerMethods(beanName);
 				}
 			}

@@ -250,14 +250,18 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	@Override
 	public void addAdvisor(Advisor advisor) {
 		int pos = this.advisors.size();
+		// 添加当前顾问到集合中
 		addAdvisor(pos, advisor);
 	}
 
 	@Override
 	public void addAdvisor(int pos, Advisor advisor) throws AopConfigException {
+		// 如果顾问类型是 IntroductionAdvisor，需要进行校验
 		if (advisor instanceof IntroductionAdvisor) {
+			// 对顾问进行校验
 			validateIntroductionAdvisor((IntroductionAdvisor) advisor);
 		}
+		// 添加顾问到 集合中
 		addAdvisorInternal(pos, advisor);
 	}
 
@@ -345,10 +349,13 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	}
 
 	private void validateIntroductionAdvisor(IntroductionAdvisor advisor) {
+		// 校验引介增强 Advice 的接口合法性
 		advisor.validateInterfaces();
 		// If the advisor passed validation, we can make the change.
+		// 获取引介增强的接口
 		Class<?>[] ifcs = advisor.getInterfaces();
 		for (Class<?> ifc : ifcs) {
+			// 添加到 ProxyFactory的接口集合中
 			addInterface(ifc);
 		}
 	}
@@ -406,6 +413,7 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 			throw new AopConfigException("DynamicIntroductionAdvice may only be added as part of IntroductionAdvisor");
 		}
 		else {
+			//  new DefaultPointcutAdvisor(advice) 意思就是 把advice 封装成 advisor, 他里面的pointcut是true意思是全匹配
 			addAdvisor(pos, new DefaultPointcutAdvisor(advice));
 		}
 	}
@@ -476,11 +484,16 @@ public class AdvisedSupport extends ProxyConfig implements Advised {
 	 * @return a List of MethodInterceptors (may also include InterceptorAndDynamicMethodMatchers)
 	 */
 	public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, @Nullable Class<?> targetClass) {
+		// 代理对象在执行某个方法的时候, 会根据当前proxyFactory中设置的Advisor根据当前method再次进行过滤
+
 		MethodCacheKey cacheKey = new MethodCacheKey(method);
+		// 这个list就是advice链
 		List<Object> cached = this.methodCache.get(cacheKey);
 		if (cached == null) {
+			// 把方法和被代理类传进去 找出对应的advice和 当前匹配的, 重点
 			cached = this.advisorChainFactory.getInterceptorsAndDynamicInterceptionAdvice(
 					this, method, targetClass);
+			// 放入缓存
 			this.methodCache.put(cacheKey, cached);
 		}
 		return cached;

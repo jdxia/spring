@@ -41,13 +41,26 @@ import org.springframework.util.Assert;
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class ProxyAsyncConfiguration extends AbstractAsyncConfiguration {
 
+	// async会向spring容器里面添加一个 AsyncAnnotationBeanPostProcessor 处理器
 	@Bean(name = TaskManagementConfigUtils.ASYNC_ANNOTATION_PROCESSOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public AsyncAnnotationBeanPostProcessor asyncAdvisor() {
 		Assert.notNull(this.enableAsync, "@EnableAsync annotation metadata was not injected");
+		/**
+		 * 构造函数里面 设置了一个很重要的属性
+		 * 这个类实现了BeanPostProcessor、BeanClassLoaderAware、BeanFactoryAware
+		 * setBeanFactory 方法 重要
+		 *
+		 * 这个类是一个后置处理器, 会在bean初始化的时候, 会对bean进行处理, 那就要看 postProcessAfterInitialization 方法
+		 * 但是他自己没有重写, 用的是父类 AbstractAdvisingBeanPostProcessor 的方法
+		 */
 		AsyncAnnotationBeanPostProcessor bpp = new AsyncAnnotationBeanPostProcessor();
+		// 对 AsyncAnnotationBeanPostProcessor 这个类的属性进行赋值
 		bpp.configure(this.executor, this.exceptionHandler);
+		// this.enableAsync 需要看下他的父类 AbstractAsyncConfiguration 的 setImportMetadata 方法
+		// 父类获取注解上的属性值, 这边就能拿到了
 		Class<? extends Annotation> customAsyncAnnotation = this.enableAsync.getClass("annotation");
+		// 自定义注解
 		if (customAsyncAnnotation != AnnotationUtils.getDefaultValue(EnableAsync.class, "annotation")) {
 			bpp.setAsyncAnnotationType(customAsyncAnnotation);
 		}

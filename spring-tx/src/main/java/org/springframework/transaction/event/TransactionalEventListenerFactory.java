@@ -32,6 +32,7 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
  */
 public class TransactionalEventListenerFactory implements EventListenerFactory, Ordered {
 
+	// 执行时机还是比较早的~~~（默认的工厂是最低优先级）
 	private int order = 50;
 
 
@@ -45,13 +46,23 @@ public class TransactionalEventListenerFactory implements EventListenerFactory, 
 	}
 
 
+	// 很显然，它要求此方法必须标注@TransactionalEventListener这个注解
+	// 备注：@TransactionalEventListener继承自@EventListener
 	@Override
 	public boolean supportsMethod(Method method) {
 		return AnnotatedElementUtils.hasAnnotation(method, TransactionalEventListener.class);
 	}
 
+	// 这里使用的是ApplicationListenerMethodTransactionalAdapter，而非ApplicationListenerMethodAdapter
+	// 虽然ApplicationListenerMethodTransactionalAdapter是它的子类
 	@Override
 	public ApplicationListener<?> createApplicationListener(String beanName, Class<?> type, Method method) {
+		/**
+		 * 通过这个工厂，会把每个标注有@TransactionalEventListener注解的方法最终都包装成一个ApplicationListenerMethodTransactionalAdapter，
+		 * 它是一个ApplicationListener，最终注册进事件发射器的容器里面
+		 *
+		 * 往下看
+		 */
 		return new ApplicationListenerMethodTransactionalAdapter(beanName, type, method);
 	}
 

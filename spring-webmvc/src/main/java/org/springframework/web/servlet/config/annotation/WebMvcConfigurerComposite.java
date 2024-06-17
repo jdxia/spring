@@ -84,6 +84,7 @@ class WebMvcConfigurerComposite implements WebMvcConfigurer {
 
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
+		// 那么delegates集合中的值是哪来的呢？在DelegatingWebMvcConfiguration中进行了一次set注入：
 		for (WebMvcConfigurer delegate : this.delegates) {
 			delegate.addInterceptors(registry);
 		}

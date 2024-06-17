@@ -47,7 +47,11 @@ public class CallableMethodReturnValueHandler implements HandlerMethodReturnValu
 			return;
 		}
 
+		//将Callable对象丢给异步执行器执行
 		Callable<?> callable = (Callable<?>) returnValue;
+
+		//下面这个方法就是将具体callable 扔到SimpleAsyncTaskExecutor线程池中去处理，处理好重新dispatch()由dispatchServlet重新处理
+		// startCallableProcessing 往下看
 		WebAsyncUtils.getAsyncManager(webRequest).startCallableProcessing(callable, mavContainer);
 	}
 

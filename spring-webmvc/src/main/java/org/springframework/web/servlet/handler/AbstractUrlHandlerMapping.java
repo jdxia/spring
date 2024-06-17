@@ -315,6 +315,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 	protected void registerHandler(String[] urlPaths, String beanName) throws BeansException, IllegalStateException {
 		Assert.notNull(urlPaths, "URL path array must not be null");
 		for (String urlPath : urlPaths) {
+			// 往下
 			registerHandler(urlPath, beanName);
 		}
 	}
@@ -333,15 +334,19 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 		Object resolvedHandler = handler;
 
 		// Eagerly resolve handler if referencing singleton via name.
+		// 判断 handler 传进来的是不是String, handler 是 beanName 是string
 		if (!this.lazyInitHandlers && handler instanceof String) {
 			String handlerName = (String) handler;
 			ApplicationContext applicationContext = obtainApplicationContext();
-			if (applicationContext.isSingleton(handlerName)) {
+			if (applicationContext.isSingleton(handlerName)) {  // 是单例
+				// 根据名字拿到bean对象
 				resolvedHandler = applicationContext.getBean(handlerName);
 			}
 		}
 
+		// 判断这个url路径是不是存在了
 		Object mappedHandler = this.handlerMap.get(urlPath);
+		// 如果有就抛异常
 		if (mappedHandler != null) {
 			if (mappedHandler != resolvedHandler) {
 				throw new IllegalStateException(
@@ -350,19 +355,22 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping i
 			}
 		}
 		else {
+			// url 是不是 /
 			if (urlPath.equals("/")) {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Root mapping to " + getHandlerDescription(handler));
 				}
 				setRootHandler(resolvedHandler);
 			}
+			// url 是不是 /*
 			else if (urlPath.equals("/*")) {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Default mapping to " + getHandlerDescription(handler));
 				}
 				setDefaultHandler(resolvedHandler);
 			}
-			else {
+			else { // 都不是走这里
+				// key是url. value是 controller bean对象
 				this.handlerMap.put(urlPath, resolvedHandler);
 				if (logger.isTraceEnabled()) {
 					logger.trace("Mapped [" + urlPath + "] onto " + getHandlerDescription(handler));

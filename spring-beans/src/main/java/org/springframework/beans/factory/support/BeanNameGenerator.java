@@ -34,5 +34,6 @@ public interface BeanNameGenerator {
 	 * @return the generated bean name
 	 */
 	String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry);
+	// 看 AnnotationBeanNameGenerator 这个子类
 
 }

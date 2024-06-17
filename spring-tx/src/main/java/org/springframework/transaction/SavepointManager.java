@@ -50,7 +50,7 @@ public interface SavepointManager {
 	 * for example because the transaction is not in an appropriate state
 	 * @see java.sql.Connection#setSavepoint
 	 */
-	Object createSavepoint() throws TransactionException;
+	Object createSavepoint() throws TransactionException;	// 创建保存点
 
 	/**
 	 * Roll back to the given savepoint.
@@ -63,7 +63,7 @@ public interface SavepointManager {
 	 * @throws TransactionException if the rollback failed
 	 * @see java.sql.Connection#rollback(java.sql.Savepoint)
 	 */
-	void rollbackToSavepoint(Object savepoint) throws TransactionException;
+	void rollbackToSavepoint(Object savepoint) throws TransactionException; // 回滚到指定保存点
 
 	/**
 	 * Explicitly release the given savepoint.
@@ -77,6 +77,6 @@ public interface SavepointManager {
 	 * @throws TransactionException if the release failed
 	 * @see java.sql.Connection#releaseSavepoint
 	 */
-	void releaseSavepoint(Object savepoint) throws TransactionException;
+	void releaseSavepoint(Object savepoint) throws TransactionException;  // 移除保存点
 
 }

@@ -46,9 +46,15 @@ import org.springframework.util.Assert;
  */
 public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotationAutowireCandidateResolver {
 
+	// 判断是不是懒注入(@Autowired + @Lazy), 如果是则会在注入时先生成一个代理对象注入给属性, 所以懒注入并不代表属性为null
 	@Override
 	@Nullable
 	public Object getLazyResolutionProxyIfNecessary(DependencyDescriptor descriptor, @Nullable String beanName) {
+		/**
+		 * 判断依赖描述是否被标记为懒加载
+		 * 如果是懒加载，为其构建一个懒加载代理, buildLazyResolutionProxy 重点
+		 * 如果不是懒加载，则返回null
+		 */
 		return (isLazy(descriptor) ? buildLazyResolutionProxy(descriptor, beanName) : null);
 	}
 
@@ -75,8 +81,14 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 	protected Object buildLazyResolutionProxy(final DependencyDescriptor descriptor, final @Nullable String beanName) {
 		Assert.state(getBeanFactory() instanceof DefaultListableBeanFactory,
 				"BeanFactory needs to be a DefaultListableBeanFactory");
+		// 获取当前的BeanFactory
 		final DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) getBeanFactory();
+		/**
+		 * 创建一个目标源(TargetSource)用于懒加载代理
+		 * TargetSource 表示被代理对象的来源
+		 */
 		TargetSource ts = new TargetSource() {
+			// 获取依赖的类型
 			@Override
 			public Class<?> getTargetClass() {
 				return descriptor.getDependencyType();
@@ -85,8 +97,10 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 			public boolean isStatic() {
 				return false;
 			}
+			// 当访问代理时，该方法被调用来解析实际的依赖关系
 			@Override
 			public Object getTarget() {
+				// 往下看
 				Object target = beanFactory.doResolveDependency(descriptor, beanName, null, null);
 				if (target == null) {
 					Class<?> type = getTargetClass();
@@ -102,18 +116,21 @@ public class ContextAnnotationAutowireCandidateResolver extends QualifierAnnotat
 					throw new NoSuchBeanDefinitionException(descriptor.getResolvableType(),
 							"Optional dependency not present for lazy injection point");
 				}
+				// 返回解析得到的bean
 				return target;
 			}
 			@Override
 			public void releaseTarget(Object target) {
 			}
 		};
+		// 使用Spring的ProxyFactory创建一个新的代理
 		ProxyFactory pf = new ProxyFactory();
 		pf.setTargetSource(ts);
 		Class<?> dependencyType = descriptor.getDependencyType();
 		if (dependencyType.isInterface()) {
 			pf.addInterface(dependencyType);
 		}
+		// 返回创建的代理对象
 		return pf.getProxy(beanFactory.getBeanClassLoader());
 	}
 

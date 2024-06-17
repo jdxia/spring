@@ -60,6 +60,8 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
+		// 如果不存在方法覆写，那就使用 java 反射进行实例化，否则使用 CGLIB,
+		// 判断当前BeanDefinition对应的beanClass是否存在@Lookup的方法
 		if (!bd.hasMethodOverrides()) {
 			Constructor<?> constructorToUse;
 			synchronized (bd.constructorArgumentLock) {
@@ -84,10 +86,13 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			// 利用构造方法进行实例化
 			return BeanUtils.instantiateClass(constructorToUse);
 		}
 		else {
 			// Must generate CGLIB subclass.
+			// 存在方法覆写@Lookup，利用 CGLIB 来完成实例化，需要依赖于 CGLIB 生成子类, 有这个注解就会生成代理对象
+			// 要看子类 CglibSubclassingInstantiationStrategy的instantiateWithMethodInjection方法
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}
@@ -151,6 +156,8 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 			Method priorInvokedFactoryMethod = currentlyInvokedFactoryMethod.get();
 			try {
 				currentlyInvokedFactoryMethod.set(factoryMethod);
+				// factoryBean就是AppConfig的代理对象(如果加了@Configuration)
+				// factoryMethod就是@Bean修饰的方法
 				Object result = factoryMethod.invoke(factoryBean, args);
 				if (result == null) {
 					result = new NullBean();

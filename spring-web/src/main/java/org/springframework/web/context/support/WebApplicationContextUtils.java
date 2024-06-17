@@ -110,6 +110,7 @@ public abstract class WebApplicationContextUtils {
 	@Nullable
 	public static WebApplicationContext getWebApplicationContext(ServletContext sc, String attrName) {
 		Assert.notNull(sc, "ServletContext must not be null");
+		// 从ServletContext 拿到 父容器, 也就是 spring的ioc容器不是springmvc的
 		Object attr = sc.getAttribute(attrName);
 		if (attr == null) {
 			return null;

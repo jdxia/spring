@@ -152,6 +152,7 @@ import org.springframework.core.Ordered;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+// 导入了一个类
 @Import(TransactionManagementConfigurationSelector.class)
 public @interface EnableTransactionManagement {
 
@@ -167,7 +168,7 @@ public @interface EnableTransactionManagement {
 	 * time. This approach has no negative impact in practice unless one is explicitly
 	 * expecting one type of proxy vs another, e.g. in tests.
 	 */
-	boolean proxyTargetClass() default false;
+	boolean proxyTargetClass() default false;    // 强制使用cglib代理
 
 	/**
 	 * Indicate how transactional advice should be applied.
@@ -179,13 +180,13 @@ public @interface EnableTransactionManagement {
 	 * scenario. For a more advanced mode of interception, consider switching this to
 	 * {@link AdviceMode#ASPECTJ}.
 	 */
-	AdviceMode mode() default AdviceMode.PROXY;
+	AdviceMode mode() default AdviceMode.PROXY;    // 拦截模式
 
 	/**
 	 * Indicate the ordering of the execution of the transaction advisor
 	 * when multiple advices are applied at a specific joinpoint.
 	 * <p>The default is {@link Ordered#LOWEST_PRECEDENCE}.
 	 */
-	int order() default Ordered.LOWEST_PRECEDENCE;
+	int order() default Ordered.LOWEST_PRECEDENCE;   // 加载顺序
 
 }

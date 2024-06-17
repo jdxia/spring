@@ -85,6 +85,7 @@ public class StandardMultipartHttpServletRequest extends AbstractMultipartHttpSe
 
 		super(request);
 		if (!lazyParsing) {
+			// 会取出请求parts进行解析
 			parseRequest(request);
 		}
 	}
@@ -92,23 +93,29 @@ public class StandardMultipartHttpServletRequest extends AbstractMultipartHttpSe
 
 	private void parseRequest(HttpServletRequest request) {
 		try {
+			// 拿到表单里面的每一部分
 			Collection<Part> parts = request.getParts();
 			this.multipartParameterNames = new LinkedHashSet<>(parts.size());
 			MultiValueMap<String, MultipartFile> files = new LinkedMultiValueMap<>(parts.size());
 			for (Part part : parts) {
 				String headerValue = part.getHeader(HttpHeaders.CONTENT_DISPOSITION);
 				ContentDisposition disposition = ContentDisposition.parse(headerValue);
+				// 看 part 能不能拿到文件名
 				String filename = disposition.getFilename();
+				// 如果part是文件, 那么有fileName
 				if (filename != null) {
 					if (filename.startsWith("=?") && filename.endsWith("?=")) {
 						filename = MimeDelegate.decode(filename);
 					}
+					// 把part对象封装成StandardMultipartFile
 					files.add(part.getName(), new StandardMultipartFile(part, filename));
 				}
 				else {
+					// 如果是字符串 存到这个里面
 					this.multipartParameterNames.add(part.getName());
 				}
 			}
+			// 保存起来
 			setMultipartFiles(files);
 		}
 		catch (Throwable ex) {

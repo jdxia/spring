@@ -67,6 +67,7 @@ public @interface Async {
 	 * of {@code Async#value} always overrides any value set at the class level.
 	 * @since 3.1.2
 	 */
+	// 意思是这个value值是用来指定执行器的（写入执行器BeanName即可采用特定的执行器去执行此方法）
 	String value() default "";
 
 }

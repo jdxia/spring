@@ -159,30 +159,52 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 	@Nullable
 	public Object proceed() throws Throwable {
 		// We start with an index of -1 and increment early.
+		// currentInterceptorIndex初始值为-1，每调用一个interceptor就会加1
+		// 当调用完了最后一个interceptor后就会执行被代理方法, advice都执行完的话
+		// 下标从-1开始，直到最后一个拦截器，执行目标方法
 		if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
+			// 执行被代理方法
 			return invokeJoinpoint();
 		}
 
+		// currentInterceptorIndex 初始值为-1, 获取拦截器前，先++, 那一开始就是第0个
+		// 获取下一个要执行的拦截器
+		// 业务上面加的advice就在 this.interceptorsAndDynamicMethodMatchers 这个list里面
 		Object interceptorOrInterceptionAdvice =
 				this.interceptorsAndDynamicMethodMatchers.get(++this.currentInterceptorIndex);
+
+		/**
+		 * 当前interceptor是InterceptorAndDynamicMethodMatcher，则先进行匹配，匹配成功后再调用该interceptor
+		 * 如果没有匹配则递归调用proceed()方法，调用下一个interceptor
+		 *
+		 * InterceptorAndDynamicMethodMatcher 来自 method mather里面 isRuntime为true, 把参数封装后成为这个的
+		 * 比如匹配方法匹配到多个, 匹配器isRuntime还设置为true, 就会封装InterceptorAndDynamicMethodMatcher, 然后走这里
+		 */
 		if (interceptorOrInterceptionAdvice instanceof InterceptorAndDynamicMethodMatcher) {
 			// Evaluate dynamic method matcher here: static part will already have
 			// been evaluated and found to match.
+			// 动态匹配
 			InterceptorAndDynamicMethodMatcher dm =
 					(InterceptorAndDynamicMethodMatcher) interceptorOrInterceptionAdvice;
 			Class<?> targetClass = (this.targetClass != null ? this.targetClass : this.method.getDeclaringClass());
+			// 动态匹配，根据方法参数匹配
 			if (dm.methodMatcher.matches(this.method, targetClass, this.arguments)) {
+				// 比如 @After @Before 对应的增强器（拦截器）的方法
+				// 比如 @After 对应的增强器 AspectJAfterAdvice 的invoke方法为：MethodInvocation.proceed();
 				return dm.interceptor.invoke(this);
 			}
 			else {
 				// Dynamic matching failed.
 				// Skip this interceptor and invoke the next in the chain.
+				// 如果动态匹配失败，则跳过该拦截器，执行下一个拦截器 MethodInterceptor
 				return proceed();
 			}
 		}
 		else {
 			// It's an interceptor, so we just invoke it: The pointcut will have
 			// been evaluated statically before this object was constructed.
+			// 直接调用MethodInterceptor，传入this，在内部会再次调用proceed()方法进行递归
+			// 比如 MethodBeforeAdviceInterceptor
 			return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
 		}
 	}

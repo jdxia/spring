@@ -78,6 +78,7 @@ public class MethodBasedEvaluationContext extends StandardEvaluationContext {
 	/**
 	 * Load the param information only when needed.
 	 */
+	// 这里是按照变量名或者a0这种方式取值的核心处理
 	protected void lazyLoadArguments() {
 		// Shortcut if no args need to be loaded
 		if (ObjectUtils.isEmpty(this.arguments)) {

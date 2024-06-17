@@ -106,6 +106,14 @@ public class SpringValidatorAdapter implements SmartValidator, javax.validation.
 	@Override
 	public void validate(Object target, Errors errors) {
 		if (this.targetValidator != null) {
+			/**
+			 * targetValidator 就是 javax.validation.Validator 这是java 规范里面定义的验证器
+			 * this.targetValidator.validate(target) 往下就是 org.hibernate.validator.internal.engine.ValidatorImpl.validate
+			 *
+			 * spring是怎么找到 hibernate 的验证器?
+			 * 看 org.hibernate.validator.internal.engine.ValidatorImpl 这个jar 包的 META-INF/services 里面有个文件
+			 * 		javax.validation.spi.ValidationProvider
+			 */
 			processConstraintViolations(this.targetValidator.validate(target), errors);
 		}
 	}

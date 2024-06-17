@@ -44,7 +44,7 @@ import org.springframework.lang.Nullable;
 public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanRegistry {
 
 	/** Cache of singleton objects created by FactoryBeans: FactoryBean name to object. */
-	private final Map<String, Object> factoryBeanObjectCache = new ConcurrentHashMap<>(16);
+	private final Map<String, Object> factoryBeanObjectCache = new ConcurrentHashMap<>(16);// 由FactoryBeans创建的单例对象的缓存:FactoryBean名称到对象
 
 
 	/**
@@ -113,6 +113,8 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 							}
 							beforeSingletonCreation(beanName);
 							try {
+								// 此方法为AbstractAutowireCapableBeanFactory重写，应用BeanPostProcessor的postProcessAfterInitialization()方法
+								// 在Bean初始化之后做一些事情, getObject() 方法返回的对象进行后置处理
 								object = postProcessObjectFromFactoryBean(object, beanName);
 							}
 							catch (Throwable ex) {
@@ -124,6 +126,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 							}
 						}
 						if (containsSingleton(beanName)) {
+							// factorybean创建出来的单例对象 单独存在一个 单独的map中
 							this.factoryBeanObjectCache.put(beanName, object);
 						}
 					}
@@ -132,6 +135,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 			}
 		}
 		else {
+			//处理非单例情况，每次都创建一个，不保存到factoryBeanObjectCache中
 			Object object = doGetObjectFromFactoryBean(factory, beanName);
 			if (shouldPostProcess) {
 				try {

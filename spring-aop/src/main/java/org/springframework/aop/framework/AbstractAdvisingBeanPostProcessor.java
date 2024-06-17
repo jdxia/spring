@@ -32,6 +32,7 @@ import org.springframework.lang.Nullable;
  * @since 3.2
  */
 @SuppressWarnings("serial")
+// 继承自ProxyProcessorSupport，所以具有动态代理相关属性~ 方便创建代理对象
 public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSupport implements BeanPostProcessor {
 
 	@Nullable
@@ -39,6 +40,7 @@ public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSu
 
 	protected boolean beforeExistingAdvisors = false;
 
+	// 这里会缓存所有被处理的Bean~~~  eligible：合适的
 	private final Map<Class<?>, Boolean> eligibleBeans = new ConcurrentHashMap<>(256);
 
 
@@ -56,20 +58,42 @@ public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSu
 	}
 
 
+	//postProcessBeforeInitialization方法什么不做
 	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) {
 		return bean;
 	}
 
-	@Override
+	// 关键是这里。当Bean初始化完成后这里会执行，这里会决策看看要不要对此Bean创建代理对象再返回
+	@Override // bean初始化后
 	public Object postProcessAfterInitialization(Object bean, String beanName) {
+		// advisor为null或者该类为AOP的基础设施类，不进行代理
 		if (this.advisor == null || bean instanceof AopInfrastructureBean) {
 			// Ignore AOP infrastructure such as scoped proxies.
 			return bean;
 		}
 
+		/**
+		 * 此处拿的是AopUtils.getTargetClass(bean)目标对象，做最终的判断
+		 * isEligible()是否合适的判断方法
+		 * 此处还有个小细节：isFrozen为false也就是还没被冻结的时候，就只向里面添加一个切面接口   并不要自己再创建代理对象了  省事
+		 *
+		 * 这个地方比较关键
+		 * 当一个方法加了 @Async、@Transactional 注解，是会先执行事务的切面还是异步的切面
+		 * 答案就在这里
+		 * 已经被代理的类，不会重复生成代理，而是会将增强器添加到代理中
+		 * 由于 AsyncAnnotationBeanPostProcessor(当前类的子类) 的构造器中已经把 beforeExistingAdvisors 设置为true
+		 * 所以异步的增强器放在了第一位
+		 *
+		 * 具体代理的执行逻辑, 可以看 AsyncExecutionInterceptor 的invoke方法
+		 */
+		// 如果此Bean已经被代理了（比如已经被事务那边给代理了~~）
 		if (bean instanceof Advised) {
 			Advised advised = (Advised) bean;
+			/**
+			 * !advised.isFrozen() 代理对象未被冻结
+			 * isEligible(AopUtils.getTargetClass(bean)) 获取bean的目标类, 来判断是否满足advisor的条件
+			 */
 			if (!advised.isFrozen() && isEligible(AopUtils.getTargetClass(bean))) {
 				// Add our local Advisor to the existing proxy's Advisor chain...
 				if (this.beforeExistingAdvisors) {
@@ -82,13 +106,19 @@ public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSu
 			}
 		}
 
+		// 是否符合条件创建代理对象，这里是循环依赖原因的一个关键点
 		if (isEligible(bean, beanName)) {
+			// copy属性  proxyFactory.copyFrom(this); 生成一个新的ProxyFactory
 			ProxyFactory proxyFactory = prepareProxyFactory(bean, beanName);
+			// 如果没有强制采用CGLIB 去探测它的接口~
 			if (!proxyFactory.isProxyTargetClass()) {
 				evaluateProxyInterfaces(bean.getClass(), proxyFactory);
 			}
+			// 添加进此切面~~ 最终为它创建一个getProxy 代理对象
 			proxyFactory.addAdvisor(this.advisor);
+			//customize交给子类复写（实际子类目前都没有复写~）
 			customizeProxyFactory(proxyFactory);
+			// 创建代理对象
 			return proxyFactory.getProxy(getProxyClassLoader());
 		}
 

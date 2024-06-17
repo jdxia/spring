@@ -51,6 +51,7 @@ import org.springframework.util.Assert;
  */
 public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContext {
 
+	//配置文件数组
 	@Nullable
 	private Resource[] configResources;
 
@@ -64,6 +65,7 @@ public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContex
 	public ClassPathXmlApplicationContext() {
 	}
 
+	// 指定ApplicationContext的父容器
 	/**
 	 * Create a new ClassPathXmlApplicationContext for bean-style configuration.
 	 * @param parent the parent context
@@ -139,8 +141,16 @@ public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContex
 			throws BeansException {
 
 		super(parent);
+		// 获取资源文件
+		// 根据提供的路径，处理成配置文件数组(以分号、逗号、空格、tab、换行符分割)
+		/**
+		 * setConfigLocations方法的主要工作有两个：
+		 * 1. 创建环境对象ConfigurableEnvironment
+		 * 2. 处理ClassPathXmlApplicationContext传入的字符串中的占位符
+		 */
 		setConfigLocations(configLocations);
 		if (refresh) {
+			// 框架核心实现
 			refresh();
 		}
 	}

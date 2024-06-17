@@ -52,6 +52,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
  * Abstract base class for {@link HandlerMapping} implementations that define
@@ -202,6 +203,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 */
 	@Override
 	public void afterPropertiesSet() {
+		// 初始化 handlerMethods
 		initHandlerMethods();
 	}
 
@@ -212,11 +214,16 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * @see #handlerMethodsInitialized
 	 */
 	protected void initHandlerMethods() {
+		// getCandidateBeanNames() 获取容器里面所有的bean
 		for (String beanName : getCandidateBeanNames()) {
 			if (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
+				// 校验类上面有没有我想要的注解, 重点
 				processCandidateBean(beanName);
 			}
 		}
+
+		// 核心, 排查问题
+		// 就打了几行debug日志, 但是要想知道 {Get /echo} => {HandlerMethod  controller#method(args0)} 就要在这看
 		handlerMethodsInitialized(getHandlerMethods());
 	}
 
@@ -246,6 +253,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	protected void processCandidateBean(String beanName) {
 		Class<?> beanType = null;
 		try {
+			// 获取bean的类型
 			beanType = obtainApplicationContext().getType(beanName);
 		}
 		catch (Throwable ex) {
@@ -254,7 +262,13 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 			}
 		}
+		/**
+		 * isHandler 看子类 {@link RequestMappingHandlerMapping#isHandler(Class)}
+		 * 看是否有 Controller注解 或者 RequestMapping 注解
+		 * 实际上 如果一个类只有 RequestMapping 注解是不行的, 因为还不是一个bean, 再加上 @Component 就可以
+		 */
 		if (beanType != null && isHandler(beanType)) {
+			// 解析这个 bean, 重点
 			detectHandlerMethods(beanName);
 		}
 	}
@@ -270,9 +284,20 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 		if (handlerType != null) {
 			Class<?> userType = ClassUtils.getUserClass(handlerType);
+			/**
+			 * 循环所有方法 <Method, @RequestMapping注解信息>
+			 * <p>
+			 * key: public java.lang.String com.study.xmlapp.controller.EchoController.echo(java.lang.String)
+			 * <p>
+			 * value: {GET /echo}
+			 * <p> 这边key是方法名, value是url 就是这么奇怪, 后面会倒过来</>
+			 */
 			Map<Method, T> methods = MethodIntrospector.selectMethods(userType,
 					(MethodIntrospector.MetadataLookup<T>) method -> {
 						try {
+							/**
+							 * 实际是子类 {@link RequestMappingHandlerMapping#getMappingForMethod(Method, Class)}
+							 */
 							return getMappingForMethod(method, userType);
 						}
 						catch (Throwable ex) {
@@ -283,8 +308,11 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			if (logger.isTraceEnabled()) {
 				logger.trace(formatMappings(userType, methods));
 			}
+			// 遍历 @RequestMapping 方法, 将方法 注册到 mappingRegistry中
 			methods.forEach((method, mapping) -> {
 				Method invocableMethod = AopUtils.selectInvocableMethod(method, userType);
+				// handler 是controller的名字, invocableMethod 是 某一个方法, mapping 是注解内容
+				// 重点
 				registerHandlerMethod(handler, invocableMethod, mapping);
 			});
 		}
@@ -315,6 +343,8 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * under the same mapping
 	 */
 	protected void registerHandlerMethod(Object handler, Method method, T mapping) {
+		// 请求URL: method
+		// register 往下
 		this.mappingRegistry.register(mapping, handler, method);
 	}
 
@@ -534,6 +564,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 		private final Map<T, HandlerMethod> mappingLookup = new LinkedHashMap<>();
 
+		// 允许一个键映射到多个值, value是 List
 		private final MultiValueMap<String, T> urlLookup = new LinkedMultiValueMap<>();
 
 		private final Map<String, List<HandlerMethod>> nameLookup = new ConcurrentHashMap<>();
@@ -589,6 +620,11 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			this.readWriteLock.readLock().unlock();
 		}
 
+		/**
+		 * mapping: RequestMappingInfo 对象 <p>
+		 * handler: controller 对象 <p>
+		 * method: 某个加了 @RequestMapping 注解的方法
+		 */
 		public void register(T mapping, Object handler, Method method) {
 			// Assert that the handler method is not a suspending one.
 			if (KotlinDetector.isKotlinType(method.getDeclaringClass())) {
@@ -599,12 +635,20 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 			}
 			this.readWriteLock.writeLock().lock();
 			try {
+				// 封装一下, 还是method
 				HandlerMethod handlerMethod = createHandlerMethod(handler, method);
 				validateMethodMapping(handlerMethod, mapping);
+				// 核心容器
+				// mapping: RequestMappingInfo 对象 {Get /echo}
+				// handlerMethod: HandlerMethod对象 {controller#method(args0)}
 				this.mappingLookup.put(mapping, handlerMethod);
 
+				// directUrls 就是 存的就是请求的url
 				List<String> directUrls = getDirectUrls(mapping);
 				for (String url : directUrls) {
+					// MultiValueMap 允许一个键映射到多个值, 因为一个url可以对应不同的方法, 比如一个是get 一个是post
+					// mapping 就是 RequestMappingInfo 对象, 注解信息
+					// <key是 url, List<注解信息> >
 					this.urlLookup.add(url, mapping);
 				}
 
@@ -618,8 +662,16 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				if (corsConfig != null) {
 					this.corsLookup.put(handlerMethod, corsConfig);
 				}
+				/**
 
+				 */
+
+				// 这个mapping是RequestMappingInfo对象, 是注解信息对象, value是method封装的对象
+				// <注解信息对象, method封装的对象>
 				this.registry.put(mapping, new MappingRegistration<>(mapping, handlerMethod, directUrls, name));
+
+				// 所以要上面的this.urlLookup 这个map  <key是 url, List<注解信息> >
+				// 和 this.registry <注解信息对象, method封装的对象> 结合起来就能得到我们想要的信息了
 			}
 			finally {
 				this.readWriteLock.writeLock().unlock();

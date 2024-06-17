@@ -219,6 +219,10 @@ public abstract class ExecutorConfigurationSupport extends CustomizableThreadFac
 		}
 		if (this.executor != null) {
 			if (this.waitForTasksToCompleteOnShutdown) {
+				/**
+				 * shutdown ()：启动有序关闭，在此过程中，先前提交的任务会被执行，但不会接受新任务。如果已经关闭，则调用此方法没有额外效果。此方法不会等待先前提交的任务完成执行。要实现此目的，请使用 {@link #awaitTermination awaitTermination}。
+				 * shutdownNow ()：尝试停止所有正在积极执行的任务，停止正在等待的任务的处理，并返回正在等待执行的任务列表。这些任务在从此方法返回时会从任务队列中移除。此方法不会等待正在积极执行的任务终止。要实现此目的，请使用 {@link #awaitTermination awaitTermination}。除了尽力尝试停止正在积极执行的任务之外，不能保证其他任何情况。此实现通过 {@link Thread#interrupt} 取消任务，因此任何未能响应中断的任务可能永远不会终止。
+				 */
 				this.executor.shutdown();
 			}
 			else {

@@ -22,6 +22,7 @@ import org.springframework.cache.interceptor.CacheResolver;
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.lang.Nullable;
 
+// 缓存配置支持类，需要使用spring cache的项目继承，一个项目只能有一个相关bean。
 /**
  * An implementation of {@link CachingConfigurer} with empty methods allowing
  * sub-classes to override only the methods they're interested in.

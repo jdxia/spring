@@ -74,6 +74,13 @@ import org.springframework.web.method.HandlerMethod;
  * @see javax.servlet.Filter
  */
 public interface HandlerInterceptor {
+	/**
+	 * MethodInterceptor 和 HandlerInterceptor 区别:
+	 * HandlerInterceptor ：是Springmvc提供的拦截器,这种拦截器的生效时机实在DispatcherServlet分发请求时生效。并非是依赖于SpringAOP功能。正因如此,是只能拦截Controller层的方法请求。使用时需要重写WebMvcConfigurerAdapter addInterceptors方法,来添加指定的拦截器。
+	 *
+	 * org.springframework.cglib.proxy.MethodInterceptor ：这个是 Cglib 进行代理时所使用的拦截器。
+	 * org.aopalliance.intercept.MethodInterceptor ：就是利用Spring AOP生成的拦截器。所以实际上MethodInterceptor的实现也就是Spring Aop的实现,和之前写的ProxyFactoryBean的用法相同，可以拦截所有层面的方法。其实现也继承了 Advice 接
+	 */
 
 	/**
 	 * Intercept the execution of a handler. Called after HandlerMapping determined
@@ -96,6 +103,7 @@ public interface HandlerInterceptor {
 	 */
 	default boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
 			throws Exception {
+		// 在执行Handler之前（执行业务逻辑之前），根据拦截器链顺序执行
 
 		return true;
 	}
@@ -122,6 +130,15 @@ public interface HandlerInterceptor {
 	 */
 	default void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
 			@Nullable ModelAndView modelAndView) throws Exception {
+		// 在执行Handler成功（执行业务逻辑成功）之后，根据拦截器链倒序执行，如果前面的流程中抛出异常或者请求被拦截则不会执行
+		// --- 拦截器1 preHandle --> 拦截器2 preHandle ---> 拦截器2 postHandle --- 拦截器1 postHandle  --- 拦截器1 afterCompletion --- 拦截器2 afterCompletion--->结束
+
+		/**
+		 * 对于采用了@ResponseBody注解或者返回ResponseEntity的方法，postHandle后处理不太有效，
+		 * 因为在Handler执行成功时响应的数据（比如JSON数据）已经被写入response并且已被提交，并且是在postHandle方法被执行之前进行的！
+		 * 此时对于response的任何修改（比如添加额外的头部信息）都为时已晚。对于这种情况，
+		 * 我们可以实现ResponseBodyAdvice接口并且声明为ControllerAdvice，或者直接在RequestMappingHandlerAdapter中配置
+		 */
 	}
 
 	/**
@@ -147,6 +164,8 @@ public interface HandlerInterceptor {
 	 */
 	default void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler,
 			@Nullable Exception ex) throws Exception {
+		// 在请求处理完毕之后执行，无论是否有响应视图，无论有没有通过preHandle，无论有没有抛出异常。
+		// 只会对此前放行成功（preHandle返回true）的拦截器进行倒序调用。
 	}
 
 }

@@ -63,6 +63,9 @@ import org.springframework.util.function.SingletonSupplier;
  */
 @SuppressWarnings("serial")
 public class AsyncAnnotationBeanPostProcessor extends AbstractBeanFactoryAwareAdvisingPostProcessor {
+	// 这个类实现了BeanPostProcessor、BeanClassLoaderAware、BeanFactoryAware
+	// setBeanFactory 也要关注
+
 
 	/**
 	 * The default name of the {@link TaskExecutor} bean to pick up: "taskExecutor".
@@ -89,6 +92,8 @@ public class AsyncAnnotationBeanPostProcessor extends AbstractBeanFactoryAwareAd
 
 
 	public AsyncAnnotationBeanPostProcessor() {
+		// 他自己没有定义order顺序, 继承父类的 org.springframework.aop.framework.ProxyProcessorSupport#getOrder
+
 		setBeforeExistingAdvisors(true);
 	}
 
@@ -146,6 +151,7 @@ public class AsyncAnnotationBeanPostProcessor extends AbstractBeanFactoryAwareAd
 	public void setBeanFactory(BeanFactory beanFactory) {
 		super.setBeanFactory(beanFactory);
 
+		// 详细看看这个类的构造方法, 定义了通知（Advice）与切点（Pointcut）
 		AsyncAnnotationAdvisor advisor = new AsyncAnnotationAdvisor(this.executor, this.exceptionHandler);
 		if (this.asyncAnnotationType != null) {
 			advisor.setAsyncAnnotationType(this.asyncAnnotationType);

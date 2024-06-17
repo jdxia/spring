@@ -52,7 +52,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * Supposed to unbind resources from TransactionSynchronizationManager if managing any.
 	 * @see TransactionSynchronizationManager#unbindResource
 	 */
-	default void suspend() {
+	default void suspend() { // 挂起事务 　　
 	}
 
 	/**
@@ -60,7 +60,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * Supposed to rebind resources to TransactionSynchronizationManager if managing any.
 	 * @see TransactionSynchronizationManager#bindResource
 	 */
-	default void resume() {
+	default void resume() { // 唤醒事务 　　
 	}
 
 	/**
@@ -86,7 +86,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * (note: do not throw TransactionException subclasses here!)
 	 * @see #beforeCompletion
 	 */
-	default void beforeCommit(boolean readOnly) {
+	default void beforeCommit(boolean readOnly) { // 提交事务前
 	}
 
 	/**
@@ -100,7 +100,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * @see #beforeCommit
 	 * @see #afterCompletion
 	 */
-	default void beforeCompletion() {
+	default void beforeCompletion() { // 提交事务完成前
 	}
 
 	/**
@@ -118,7 +118,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * @throws RuntimeException in case of errors; will be <b>propagated to the caller</b>
 	 * (note: do not throw TransactionException subclasses here!)
 	 */
-	default void afterCommit() {
+	default void afterCommit() {  // 提交事务后
 	}
 
 	/**
@@ -139,7 +139,7 @@ public interface TransactionSynchronization extends Flushable {
 	 * @see #STATUS_UNKNOWN
 	 * @see #beforeCompletion
 	 */
-	default void afterCompletion(int status) {
+	default void afterCompletion(int status) { // 提交事务完成后
 	}
 
 }

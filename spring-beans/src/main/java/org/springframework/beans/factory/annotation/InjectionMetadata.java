@@ -71,10 +71,13 @@ public class InjectionMetadata {
 
 	private static final Log logger = LogFactory.getLog(InjectionMetadata.class);
 
+	// 解析的目标对象
 	private final Class<?> targetClass;
 
+	// 需要注入的对象，包括属性、方法
 	private final Collection<InjectedElement> injectedElements;
 
+	// checkConfigMembers这个方法会对injectedElements对对象进行检查，这是检查后要注入的对象
 	@Nullable
 	private volatile Set<InjectedElement> checkedElements;
 
@@ -118,15 +121,24 @@ public class InjectionMetadata {
 		this.checkedElements = checkedElements;
 	}
 
+	// 对对象进行注入
 	public void inject(Object target, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
+		// 获取已校验的注入元素
 		Collection<InjectedElement> checkedElements = this.checkedElements;
+		// 如果没有已校验的元素，则使用所有注入元素
 		Collection<InjectedElement> elementsToIterate =
 				(checkedElements != null ? checkedElements : this.injectedElements);
 		if (!elementsToIterate.isEmpty()) {
+			/**
+			 * 遍历每个注入点(字段或者方法)进行依赖注入
+			 * InjectedElement 有很多实现, 比如 AutowiredFieldElement 字段对应的注入点, AutowiredMethodElement 方法对应的注入点
+			 */
 			for (InjectedElement element : elementsToIterate) {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Processing injected element of bean '" + beanName + "': " + element);
 				}
+				// 重点, @Autowired分为字段注入和方法注入, 这是2个不同的类来处理的
+				// 执行实际的注入操作
 				element.inject(target, beanName, pvs);
 			}
 		}
@@ -148,6 +160,7 @@ public class InjectionMetadata {
 	}
 
 
+	// buildAutowiringMetadata中使用过这个方法，把解析后对象的数据封装成InjectionMetadata
 	/**
 	 * Return an {@code InjectionMetadata} instance, possibly for empty elements.
 	 * @param elements the elements to inject (possibly empty)
@@ -176,11 +189,13 @@ public class InjectionMetadata {
 	 * A single injected element.
 	 */
 	public abstract static class InjectedElement {
+		// 这个类是method和field的父类
 
 		protected final Member member;
-
+		// 区分field还是method
 		protected final boolean isField;
 
+		// method时会使用到这个对象，因为可能不止一个属性
 		@Nullable
 		protected final PropertyDescriptor pd;
 
@@ -232,10 +247,14 @@ public class InjectionMetadata {
 		 */
 		protected void inject(Object target, @Nullable String requestingBeanName, @Nullable PropertyValues pvs)
 				throws Throwable {
+			// @AutoWired 是在子类里面, 别看错位置了
+			// @Resource 的 注入, 自己的类是没有的, 是在这里的在这个方法里面看
 
 			if (this.isField) {
 				Field field = (Field) this.member;
 				ReflectionUtils.makeAccessible(field);
+				// 可以看下  getResourceToInject 方法, 子类实现,
+				// 子类看下 ResourceElement, 里面有 @Lazy 的处理
 				field.set(target, getResourceToInject(target, requestingBeanName));
 			}
 			else {
@@ -273,6 +292,10 @@ public class InjectionMetadata {
 					return skip;
 				}
 				if (this.pd != null) {
+					/**
+					 * pvs里面包含我属性注入点的名字, 我就直接跳过
+					 * 你在外面手动给注入的属性赋值了, 这边@Autowired 是不会管的
+					 */
 					if (pvs.contains(this.pd.getName())) {
 						// Explicit value provided as part of the bean definition.
 						this.skip = true;

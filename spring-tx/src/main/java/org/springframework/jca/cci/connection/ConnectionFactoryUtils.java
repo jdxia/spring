@@ -164,6 +164,7 @@ public abstract class ConnectionFactoryUtils {
 	 */
 	public static void releaseConnection(@Nullable Connection con, @Nullable ConnectionFactory cf) {
 		try {
+			// 资源释放
 			doReleaseConnection(con, cf);
 		}
 		catch (ResourceException ex) {

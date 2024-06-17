@@ -353,27 +353,32 @@ public class ScheduledTaskRegistrar implements ScheduledTaskHolder, Initializing
 	 * Schedule all registered tasks against the underlying
 	 * {@linkplain #setTaskScheduler(TaskScheduler) task scheduler}.
 	 */
-	@SuppressWarnings("deprecation")
+	@SuppressWarnings("deprecation") // 装载所有调度任务
 	protected void scheduleTasks() {
+		// 这里注意一点，如果找不到任务调度器实例，那么会用单个线程调度所有任务
 		if (this.taskScheduler == null) {
 			this.localExecutor = Executors.newSingleThreadScheduledExecutor();
 			this.taskScheduler = new ConcurrentTaskScheduler(this.localExecutor);
 		}
+		// 调度所有装载完毕的自定义触发器的任务实例
 		if (this.triggerTasks != null) {
 			for (TriggerTask task : this.triggerTasks) {
 				addScheduledTask(scheduleTriggerTask(task));
 			}
 		}
+		// 调度所有装载完毕的CronTask
 		if (this.cronTasks != null) {
 			for (CronTask task : this.cronTasks) {
 				addScheduledTask(scheduleCronTask(task));
 			}
 		}
+		// 调度所有装载完毕的FixedRateTask
 		if (this.fixedRateTasks != null) {
 			for (IntervalTask task : this.fixedRateTasks) {
 				addScheduledTask(scheduleFixedRateTask(task));
 			}
 		}
+		// 调度所有装载完毕的FixedDelayTask
 		if (this.fixedDelayTasks != null) {
 			for (IntervalTask task : this.fixedDelayTasks) {
 				addScheduledTask(scheduleFixedDelayTask(task));

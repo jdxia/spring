@@ -171,7 +171,9 @@ public @interface EnableAsync {
 	 * custom annotation type to indicate that a method (or all methods of
 	 * a given class) should be invoked asynchronously.
 	 */
-	Class<? extends Annotation> annotation() default Annotation.class;
+	// 默认情况下，要开启异步操作，要在相应的方法或者类上加上@Async注解或者EJB3.1规范下的@Asynchronous注解。
+	// 这个属性使得开发人员可以自己设置开启异步操作的注解(可谓非常的人性化了，但是大多情况下用Spring的就足够了)
+	Class<? extends Annotation> annotation() default Annotation.class;     // 配置异步注解，默认是@Async
 
 	/**
 	 * Indicate whether subclass-based (CGLIB) proxies are to be created as opposed
@@ -185,7 +187,8 @@ public @interface EnableAsync {
 	 * negative impact in practice unless one is explicitly expecting one type of proxy
 	 * vs. another &mdash; for example, in tests.
 	 */
-	boolean proxyTargetClass() default false;
+	// true表示启用CGLIB代理
+	boolean proxyTargetClass() default false;     // 默认使用jdk动态代理
 
 	/**
 	 * Indicate how async advice should be applied.
@@ -197,7 +200,10 @@ public @interface EnableAsync {
 	 * For a more advanced mode of interception, consider switching this to
 	 * {@link AdviceMode#ASPECTJ}.
 	 */
-	AdviceMode mode() default AdviceMode.PROXY;
+	// 代理方式：默认是PROXY  采用Spring的动态代理（含JDK动态代理和CGLIB）
+	// 若改为：AdviceMode.ASPECTJ 表示使用AspectJ静态代理方式。
+	// 它能够解决同类内方法调用不走代理对象的问题，但是一般情况下都不建议这么去做，不要修改这个参数值
+	AdviceMode mode() default AdviceMode.PROXY;      // 默认使用Spring AOP代理
 
 	/**
 	 * Indicate the order in which the {@link AsyncAnnotationBeanPostProcessor}
@@ -206,6 +212,7 @@ public @interface EnableAsync {
 	 * after all other post-processors, so that it can add an advisor to
 	 * existing proxies rather than double-proxy.
 	 */
-	int order() default Ordered.LOWEST_PRECEDENCE;
+	// 直接定义：它的执行顺序（因为可能有多个@EnableXXX）
+	int order() default Ordered.LOWEST_PRECEDENCE;     // 这个注解会往容器中添加一个类AsyncAnnotationBeanPostProcessor，这个配置代表这个类的执行顺序
 
 }

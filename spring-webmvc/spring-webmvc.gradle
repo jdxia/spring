@@ -70,4 +70,8 @@ dependencies {
 	testRuntime("com.sun.xml.bind:jaxb-core")
 	testRuntime("com.sun.xml.bind:jaxb-impl")
 	testRuntime("com.sun.activation:javax.activation")
+
+	//	引入内嵌的tomcat
+	testImplementation("org.apache.tomcat.embed:tomcat-embed-core")
+
 }

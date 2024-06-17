@@ -137,6 +137,7 @@ public class ScheduledAnnotationBeanPostProcessor
 
 	private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
 
+	// 宿主Bean实例 -> 解析完成的任务实例Set
 	private final Map<Object, Set<ScheduledTask>> scheduledTasks = new IdentityHashMap<>(16);
 
 
@@ -213,7 +214,7 @@ public class ScheduledAnnotationBeanPostProcessor
 	}
 
 
-	@Override
+	@Override // 所有单例实例化完毕之后回调
 	public void afterSingletonsInstantiated() {
 		// Remove resolved singleton classes from cache
 		this.nonAnnotatedClasses.clear();
@@ -224,7 +225,7 @@ public class ScheduledAnnotationBeanPostProcessor
 		}
 	}
 
-	@Override
+	@Override // 上下文刷新完成之后回调
 	public void onApplicationEvent(ContextRefreshedEvent event) {
 		if (event.getApplicationContext() == this.applicationContext) {
 			// Running in an ApplicationContext -> register tasks this late...
@@ -235,20 +236,26 @@ public class ScheduledAnnotationBeanPostProcessor
 	}
 
 	private void finishRegistration() {
+		// 如果持有的scheduler对象不为null则设置ScheduledTaskRegistrar中的任务调度器
 		if (this.scheduler != null) {
 			this.registrar.setScheduler(this.scheduler);
 		}
 
+		// 这个判断一般会成立，得到的BeanFactory就是DefaultListableBeanFactory
 		if (this.beanFactory instanceof ListableBeanFactory) {
+			// 获取所有的调度配置器SchedulingConfigurer实例，并且都回调configureTasks()方法，这个很重要，它是用户动态装载调取任务的扩展钩子接口
 			Map<String, SchedulingConfigurer> beans =
 					((ListableBeanFactory) this.beanFactory).getBeansOfType(SchedulingConfigurer.class);
 			List<SchedulingConfigurer> configurers = new ArrayList<>(beans.values());
+			// SchedulingConfigurer实例列表排序
 			AnnotationAwareOrderComparator.sort(configurers);
 			for (SchedulingConfigurer configurer : configurers) {
 				configurer.configureTasks(this.registrar);
 			}
 		}
 
+		// 下面这一大段逻辑都是为了从BeanFactory取出任务调度器实例，主要判断TaskScheduler或者ScheduledExecutorService类型的Bean，包括尝试通过类型或者名字获取
+		// 获取成功后设置到ScheduledTaskRegistrar中
 		if (this.registrar.hasTasks() && this.registrar.getScheduler() == null) {
 			Assert.state(this.beanFactory != null, "BeanFactory must be set to find scheduler by type");
 			try {
@@ -298,7 +305,7 @@ public class ScheduledAnnotationBeanPostProcessor
 				}
 			}
 		}
-
+		// 调用ScheduledTaskRegistrar的afterPropertiesSet()方法，装载所有的调度任务
 		this.registrar.afterPropertiesSet();
 	}
 
@@ -335,21 +342,26 @@ public class ScheduledAnnotationBeanPostProcessor
 
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) {
+		// 忽略 AopInfrastructureBean、TaskScheduler 和 ScheduledExecutorService 三种类型的Bean
 		if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler ||
 				bean instanceof ScheduledExecutorService) {
 			// Ignore AOP infrastructure such as scoped proxies.
 			return bean;
 		}
 
+		// 获取Bean的用户态类型，例如Bean有可能被CGLIB增强，这个时候要取其父类
 		Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
+		// nonAnnotatedClasses存放着不存在@Scheduled注解的类型，缓存起来避免重复判断它是否携带@Scheduled注解的方法
 		if (!this.nonAnnotatedClasses.contains(targetClass) &&
 				AnnotationUtils.isCandidateClass(targetClass, Arrays.asList(Scheduled.class, Schedules.class))) {
+			// 因为JDK8之后支持重复注解，因此获取具体类型中Method -> @Scheduled的集合，也就是有可能一个方法使用多个@Scheduled注解，最终会封装为多个Task
 			Map<Method, Set<Scheduled>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
 					(MethodIntrospector.MetadataLookup<Set<Scheduled>>) method -> {
 						Set<Scheduled> scheduledMethods = AnnotatedElementUtils.getMergedRepeatableAnnotations(
 								method, Scheduled.class, Schedules.class);
 						return (!scheduledMethods.isEmpty() ? scheduledMethods : null);
 					});
+			// 解析到类型中不存在@Scheduled注解的方法添加到nonAnnotatedClasses缓存
 			if (annotatedMethods.isEmpty()) {
 				this.nonAnnotatedClasses.add(targetClass);
 				if (logger.isTraceEnabled()) {
@@ -358,7 +370,9 @@ public class ScheduledAnnotationBeanPostProcessor
 			}
 			else {
 				// Non-empty set of methods
+				// Method -> @Scheduled的集合遍历processScheduled()方法进行登记
 				annotatedMethods.forEach((method, scheduledMethods) ->
+						// processScheduled 往下看
 						scheduledMethods.forEach(scheduled -> processScheduled(scheduled, method, bean)));
 				if (logger.isTraceEnabled()) {
 					logger.trace(annotatedMethods.size() + " @Scheduled methods processed on bean '" + beanName +
@@ -377,15 +391,26 @@ public class ScheduledAnnotationBeanPostProcessor
 	 * @see #createRunnable(Object, Method)
 	 */
 	protected void processScheduled(Scheduled scheduled, Method method, Object bean) {
+		/**
+		 * 这个方法十分长，不过逻辑并不复杂，它只做了四件事
+		 * 0. 解析@Scheduled中的initialDelay、initialDelayString属性，适用于FixedDelayTask或者FixedRateTask的延迟执行
+		 * 1. 优先解析@Scheduled中的cron属性，封装为CronTask，通过ScheduledTaskRegistrar进行缓存
+		 * 2. 解析@Scheduled中的fixedDelay、fixedDelayString属性，封装为FixedDelayTask，通过ScheduledTaskRegistrar进行缓存
+		 * 3. 解析@Scheduled中的fixedRate、fixedRateString属性，封装为FixedRateTask，通过ScheduledTaskRegistrar进行缓存
+		 */
+
 		try {
+			// 通过方法宿主Bean和目标方法封装Runnable适配器ScheduledMethodRunnable实例
 			Runnable runnable = createRunnable(bean, method);
 			boolean processedSchedule = false;
 			String errorMessage =
 					"Exactly one of the 'cron', 'fixedDelay(String)', or 'fixedRate(String)' attributes is required";
 
+			// 缓存已经装载的任务
 			Set<ScheduledTask> tasks = new LinkedHashSet<>(4);
 
 			// Determine initial delay
+			// 解析初始化延迟执行时间，initialDelayString支持占位符配置，如果initialDelayString配置了，会覆盖initialDelay的值
 			long initialDelay = scheduled.initialDelay();
 			String initialDelayString = scheduled.initialDelayString();
 			if (StringUtils.hasText(initialDelayString)) {
@@ -405,6 +430,7 @@ public class ScheduledAnnotationBeanPostProcessor
 			}
 
 			// Check cron expression
+			// 解析时区zone的值，支持支持占位符配置，判断cron是否存在，存在则装载为CronTask
 			String cron = scheduled.cron();
 			if (StringUtils.hasText(cron)) {
 				String zone = scheduled.zone();
@@ -423,17 +449,21 @@ public class ScheduledAnnotationBeanPostProcessor
 						else {
 							timeZone = TimeZone.getDefault();
 						}
+						// 此方法虽然表面上是调度CronTask，实际上由于ScheduledTaskRegistrar不持有TaskScheduler，只是把任务添加到它的缓存中
+						// 返回的任务实例添加到宿主Bean的缓存中，然后最后会放入宿主Bean -> List<ScheduledTask>映射中
 						tasks.add(this.registrar.scheduleCronTask(new CronTask(runnable, new CronTrigger(cron, timeZone))));
 					}
 				}
 			}
 
 			// At this point we don't need to differentiate between initial delay set or not anymore
+			// 修正小于0的初始化延迟执行时间值为0
 			if (initialDelay < 0) {
 				initialDelay = 0;
 			}
 
 			// Check fixed delay
+			// 解析fixedDelay和fixedDelayString，如果同时配置，fixedDelayString最终解析出来的整数值会覆盖fixedDelay，封装为FixedDelayTask
 			long fixedDelay = scheduled.fixedDelay();
 			if (fixedDelay >= 0) {
 				Assert.isTrue(!processedSchedule, errorMessage);
@@ -455,11 +485,14 @@ public class ScheduledAnnotationBeanPostProcessor
 						throw new IllegalArgumentException(
 								"Invalid fixedDelayString value \"" + fixedDelayString + "\" - cannot parse into long");
 					}
+					// 此方法虽然表面上是调度FixedDelayTask，实际上由于ScheduledTaskRegistrar不持有TaskScheduler，只是把任务添加到它的缓存中
+					// 返回的任务实例添加到宿主Bean的缓存中，然后最后会放入宿主Bean -> List<ScheduledTask>映射中
 					tasks.add(this.registrar.scheduleFixedDelayTask(new FixedDelayTask(runnable, fixedDelay, initialDelay)));
 				}
 			}
 
 			// Check fixed rate
+			// 解析fixedRate和fixedRateString，如果同时配置，fixedRateString最终解析出来的整数值会覆盖fixedRate，封装为FixedRateTask
 			long fixedRate = scheduled.fixedRate();
 			if (fixedRate >= 0) {
 				Assert.isTrue(!processedSchedule, errorMessage);
@@ -481,6 +514,8 @@ public class ScheduledAnnotationBeanPostProcessor
 						throw new IllegalArgumentException(
 								"Invalid fixedRateString value \"" + fixedRateString + "\" - cannot parse into long");
 					}
+					// 此方法虽然表面上是调度FixedRateTask，实际上由于ScheduledTaskRegistrar不持有TaskScheduler，只是把任务添加到它的缓存中
+					// 返回的任务实例添加到宿主Bean的缓存中，然后最后会放入宿主Bean -> List<ScheduledTask>映射中
 					tasks.add(this.registrar.scheduleFixedRateTask(new FixedRateTask(runnable, fixedRate, initialDelay)));
 				}
 			}
@@ -490,6 +525,7 @@ public class ScheduledAnnotationBeanPostProcessor
 
 			// Finally register the scheduled tasks
 			synchronized (this.scheduledTasks) {
+				// 注册所有任务实例，这个映射Key为宿主Bean实例，Value为List<ScheduledTask>，后面用于调度所有注册完成的任务
 				Set<ScheduledTask> regTasks = this.scheduledTasks.computeIfAbsent(bean, key -> new LinkedHashSet<>(4));
 				regTasks.addAll(tasks);
 			}

@@ -42,6 +42,8 @@ public class SchedulingConfiguration {
 	@Bean(name = TaskManagementConfigUtils.SCHEDULED_ANNOTATION_PROCESSOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public ScheduledAnnotationBeanPostProcessor scheduledAnnotationProcessor() {
+		// 关注下这个对象的 postProcessAfterInitialization 初始化后置方法 postProcessAfterInitialization
+
 		return new ScheduledAnnotationBeanPostProcessor();
 	}
 

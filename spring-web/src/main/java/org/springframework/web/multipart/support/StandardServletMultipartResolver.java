@@ -79,11 +79,14 @@ public class StandardServletMultipartResolver implements MultipartResolver {
 
 	@Override
 	public boolean isMultipart(HttpServletRequest request) {
+		// 检查请求头的content-type里面有没有multipart/
 		return StringUtils.startsWithIgnoreCase(request.getContentType(), "multipart/");
 	}
 
 	@Override
 	public MultipartHttpServletRequest resolveMultipart(HttpServletRequest request) throws MultipartException {
+		// 把请求包装一下
+		// this.resolveLazily 这个默认是false
 		return new StandardMultipartHttpServletRequest(request, this.resolveLazily);
 	}
 

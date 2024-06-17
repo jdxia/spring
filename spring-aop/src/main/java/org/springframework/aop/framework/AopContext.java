@@ -41,6 +41,7 @@ import org.springframework.lang.Nullable;
  */
 public final class AopContext {
 
+	//线程对象
 	/**
 	 * ThreadLocal holder for AOP proxy associated with this thread.
 	 * Will contain {@code null} unless the "exposeProxy" property on
@@ -64,6 +65,8 @@ public final class AopContext {
 	 * AOP framework has not been configured to expose the proxy
 	 */
 	public static Object currentProxy() throws IllegalStateException {
+		//从线程对象中将代理对象取出来
+
 		Object proxy = currentProxy.get();
 		if (proxy == null) {
 			throw new IllegalStateException(
@@ -82,6 +85,7 @@ public final class AopContext {
 	 */
 	@Nullable
 	static Object setCurrentProxy(@Nullable Object proxy) {
+		//将代理对象set到AopContext中的线程对象里
 		Object old = currentProxy.get();
 		if (proxy != null) {
 			currentProxy.set(proxy);

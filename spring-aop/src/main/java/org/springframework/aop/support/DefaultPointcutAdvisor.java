@@ -55,9 +55,13 @@ public class DefaultPointcutAdvisor extends AbstractGenericPointcutAdvisor imple
 	 * @param advice the Advice to use
 	 */
 	public DefaultPointcutAdvisor(Advice advice) {
+		//Pointcut.TRUE 意思是不论什么情况都匹配
 		this(Pointcut.TRUE, advice);
 	}
 
+	/**
+	 * 自己定义了 Pointcut属性，而 Advice属性 则使用父类中的定义
+	 */
 	/**
 	 * Create a DefaultPointcutAdvisor, specifying Pointcut and Advice.
 	 * @param pointcut the Pointcut targeting the Advice

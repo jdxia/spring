@@ -24,6 +24,7 @@ import org.aopalliance.intercept.MethodInvocation;
 
 import org.springframework.lang.Nullable;
 
+// 缓存的切面拦截器
 /**
  * AOP Alliance MethodInterceptor for declarative cache
  * management using the common Spring caching infrastructure
@@ -58,6 +59,12 @@ public class CacheInterceptor extends CacheAspectSupport implements MethodInterc
 		};
 
 		try {
+			/**
+			 * 执行增强逻辑流程
+			 *
+			 * execute 是父类 CacheAspectSupport 的
+			 * CacheAspectSupport 还有个afterSingletonsInstantiated 方法, 检查有没有合适的CacheManager,并且将initialized设置为true
+			 */
 			return execute(aopAllianceInvoker, invocation.getThis(), method, invocation.getArguments());
 		}
 		catch (CacheOperationInvoker.ThrowableWrapper th) {

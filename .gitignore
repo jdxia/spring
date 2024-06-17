@@ -41,3 +41,92 @@ out
 test-output
 atlassian-ide-plugin.xml
 .gradletasknamecache
+
+
+# Compiled class file
+*.class
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Intellij
+out
+*.ipr
+*.iml
+*.iws
+.idea/
+**/.idea/
+atlassian-ide-plugin.xml
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+
+# Maven
+*/target/
+target/
+**/target/
+.m2
+
+# Gradle
+build
+.gradle
+/target
+*/target
+/build
+*/build
+/bin
+*/bin
+classes
+
+# Log file
+*.log
+log/
+logs/
+
+# out
+**/out/
+
+# Mac
+.DS_Store*
+.AppleDouble
+.LSOverride
+
+# others
+*.o
+*.so
+*.dll
+*.exe
+*.7z
+*.dmg
+*.iso
+*.jar
+*.war
+*.zip
+*.rar
+*.tar
+*.tar.gz
+*.pid
+*.orig
+*.nar
+*.ear
+temp/
+
+# Default ignored files
+/workspace.xml
+
+# OS generated files #
+######################
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Eclipse specific files/directories
+.classpath
+.project
+.settings
+.metadata
+# NetBeans specific files/directories
+.nbattrs

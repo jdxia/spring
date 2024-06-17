@@ -443,7 +443,7 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 		 * {@link Inherited @Inherited} annotations and without searching
 		 * superclasses or implemented interfaces.
 		 */
-		DIRECT,
+		DIRECT, // 只查找当前类，不考虑@Inherited、父类和实现的接口
 
 		/**
 		 * Find all directly declared annotations as well as any
@@ -453,7 +453,7 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 		 * {@linkplain AnnotatedElement annotated elements}. This strategy does
 		 * not search implemented interfaces.
 		 */
-		INHERITED_ANNOTATIONS,
+		INHERITED_ANNOTATIONS, // 查找当前类和@Inherited，不查找父类和实现的接口
 
 		/**
 		 * Find all directly declared and superclass annotations. This strategy
@@ -461,14 +461,14 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 		 * do not need to be meta-annotated with {@link Inherited @Inherited}.
 		 * This strategy does not search implemented interfaces.
 		 */
-		SUPERCLASS,
+		SUPERCLASS, // 查找当前类和父类，不查找实现的接口
 
 		/**
 		 * Perform a full search of the entire type hierarchy, including
 		 * superclasses and implemented interfaces. Superclass annotations do
 		 * not need to be meta-annotated with {@link Inherited @Inherited}.
 		 */
-		TYPE_HIERARCHY,
+		TYPE_HIERARCHY, // 查找当前类、父类、实现的接口
 
 		/**
 		 * Perform a full search of the entire type hierarchy on the source
@@ -479,7 +479,7 @@ public interface MergedAnnotations extends Iterable<MergedAnnotation<Annotation>
 		 * searching a {@link Method} source, this strategy is identical to
 		 * {@link #TYPE_HIERARCHY}.
 		 */
-		TYPE_HIERARCHY_AND_ENCLOSING_CLASSES
+		TYPE_HIERARCHY_AND_ENCLOSING_CLASSES // 在TYPE_HIERARCHY基础上还查找外部类（如果当前类是内部类）
 	}
 
 }

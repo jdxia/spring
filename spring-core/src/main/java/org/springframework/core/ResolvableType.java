@@ -1095,12 +1095,15 @@ public class ResolvableType implements Serializable {
 	 */
 	public static ResolvableType forInstance(Object instance) {
 		Assert.notNull(instance, "Instance must not be null");
+		// 判断 instance 是不是 ResolvableTypeProvider 的子类
 		if (instance instanceof ResolvableTypeProvider) {
 			ResolvableType type = ((ResolvableTypeProvider) instance).getResolvableType();
 			if (type != null) {
+				// 如果是则返回一个 type
 				return type;
 			}
 		}
+		// 如果不是则返回 forClass(instance.getClass())
 		return ResolvableType.forClass(instance.getClass());
 	}
 

@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.autoproxy.AspectJAwareAdvisorAutoProxyCreator;
+import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.lang.Nullable;
@@ -48,6 +49,11 @@ import org.springframework.util.Assert;
  */
 @SuppressWarnings("serial")
 public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorAutoProxyCreator {
+	/**
+	 * 这是个 BeanPostProcessor, 其主要逻辑在AbstractAutoProxyCreator 中实现
+	 * Spring事务的实现也依赖于 AbstractAutoProxyCreator 类，并且逻辑与Aop 的实现基本一致，因为事务的实现的方式也是Aop代理
+	 * 初始化后是 {@link AbstractAutoProxyCreator#postProcessAfterInitialization(Object, String)}
+	 */
 
 	@Nullable
 	private List<Pattern> includePatterns;
@@ -86,12 +92,38 @@ public class AnnotationAwareAspectJAutoProxyCreator extends AspectJAwareAdvisorA
 	}
 
 
+	/**
+	 * Aop 重写了这个, 但是事务没有
+	 * 相较于 Aop 的 ，事务的 InfrastructureAdvisorAutoProxyCreator，不仅没有添加新逻辑(关键逻辑)，还砍掉了动态生成Advisor 的逻辑
+	 */
 	@Override
 	protected List<Advisor> findCandidateAdvisors() {
+		/**
+		 * 1. super.findCandidateAdvisors(); 调用了父类的 AbstractAdvisorAutoProxyCreator#findCandidateAdvisors 的方法来获取 Advisor
+		 * 2. 调用 this.aspectJAdvisorsBuilder.buildAspectJAdvisors() 方法来获取Advisor
+		 *
+		 * 这两个方法都是为了获取 Advisor，区别在于
+		 *
+		 * 	super.findCandidateAdvisors(); ： 一般获取的都是通过直接注册的 Advisors。比如事务的，直接通过 @Bean 注入到Spring容器中。
+		 *
+		 * 	this.aspectJAdvisorsBuilder.buildAspectJAdvisors() ： 主要获取我们通过注解方式动态注册的 Advisors。
+		 * 			比如 在 Aop 中根据不同的表达式，每个@Pointcut 注解的切点不同，也就会对不同的Bean起作用，并且对于每个@Pointcut来说都有@Before、@After 等不同的操作，那么每个@Pointcut 以及其对应的操作都会被封装成一个一个的 Advisor 返回。
+		 */
+
 		// Add all the Spring advisors found according to superclass rules.
+		// 调用父类方法从容器中查找所有的通知器, 根据规则找出实现了Advisor接口的bean, 就是直接获取 容器中的 Advisor 类型的Bean
 		List<Advisor> advisors = super.findCandidateAdvisors();
 		// Build Advisors for all AspectJ aspects in the bean factory.
+		// 从所有切面中解析得到的Advisor对象
 		if (this.aspectJAdvisorsBuilder != null) {
+			// 在当前的bean工厂中查找带有AspectJ注解的 Aspect bean，并封装成代表他们的Spring Aop Advisor，注入到Spring 中
+			/**
+			 * 大概流程:
+			 * 获取所有beanName，这一步所有在beanFactory中注册的bean都会被提取出来
+			 * 遍历所有的beanName, 找出声明AspectJ注解的类，进行进一步处理
+			 * 对标记为AspectJ注解的类进行Advisors 提取
+			 * 将提取的结果保存到缓存中。
+			 */
 			advisors.addAll(this.aspectJAdvisorsBuilder.buildAspectJAdvisors());
 		}
 		return advisors;

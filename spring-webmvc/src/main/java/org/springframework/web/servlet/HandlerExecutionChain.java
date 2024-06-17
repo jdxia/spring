@@ -134,11 +134,13 @@ public class HandlerExecutionChain {
 	 * that this interceptor has already dealt with the response itself.
 	 */
 	boolean applyPreHandle(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		// 获取所有 拦截器, 包括异步拦截器, 因为 AsyncHandlerInterceptor 也实现了 HandlerInterceptor接口
 		HandlerInterceptor[] interceptors = getInterceptors();
 		if (!ObjectUtils.isEmpty(interceptors)) {
 			for (int i = 0; i < interceptors.length; i++) {
 				HandlerInterceptor interceptor = interceptors[i];
 				if (!interceptor.preHandle(request, response, this.handler)) {
+					// 如果有拦截器 preHandle 返回的是 false就进这里
 					triggerAfterCompletion(request, response, null);
 					return false;
 				}
@@ -179,6 +181,7 @@ public class HandlerExecutionChain {
 					interceptor.afterCompletion(request, response, this.handler, ex);
 				}
 				catch (Throwable ex2) {
+					// 如果拦截器中抛出了异常, 这个异常是不会继续往外抛的
 					logger.error("HandlerInterceptor.afterCompletion threw exception", ex2);
 				}
 			}
@@ -189,12 +192,19 @@ public class HandlerExecutionChain {
 	 * Apply afterConcurrentHandlerStarted callback on mapped AsyncHandlerInterceptors.
 	 */
 	void applyAfterConcurrentHandlingStarted(HttpServletRequest request, HttpServletResponse response) {
+		// 异步servlet拦截器
 		HandlerInterceptor[] interceptors = getInterceptors();
 		if (!ObjectUtils.isEmpty(interceptors)) {
 			for (int i = interceptors.length - 1; i >= 0; i--) {
 				if (interceptors[i] instanceof AsyncHandlerInterceptor) {
 					try {
 						AsyncHandlerInterceptor asyncInterceptor = (AsyncHandlerInterceptor) interceptors[i];
+						/**
+						 * 在servlet线程中执行的
+						 *
+						 * 这个方法会在Controller方法异步执行时开始执行, 而Interceptor的postHandle方法则是需要等到Controller的异步执行完才能执行
+						 * 如果我们不是异步请求，afterConcurrentHandlingStarted是不会执行的
+						 */
 						asyncInterceptor.afterConcurrentHandlingStarted(request, response, this.handler);
 					}
 					catch (Throwable ex) {

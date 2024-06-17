@@ -98,6 +98,7 @@ import org.springframework.context.annotation.Import;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
+// 导入了一个DelegatingWebMvcConfiguration配置类，这个配置类定义了很多个Bean，比如RequestMappingHandlerMapping
 @Import(DelegatingWebMvcConfiguration.class)
 public @interface EnableWebMvc {
 }

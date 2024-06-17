@@ -24,6 +24,7 @@ import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.lang.Nullable;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -37,13 +38,17 @@ import org.springframework.util.ObjectUtils;
 abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPointcut implements Serializable {
 
 	protected TransactionAttributeSourcePointcut() {
+		// 类过滤
 		setClassFilter(new TransactionAttributeSourceClassFilter());
 	}
 
 
+	// matches不仅里面有匹配还有解析 Transaction 生成对应对象并缓存起来
 	@Override
 	public boolean matches(Method method, Class<?> targetClass) {
 		TransactionAttributeSource tas = getTransactionAttributeSource();
+		// 调用 TransactionAttributeSource.getTransactionAttribute 方法来匹配
+		// 实际是 AnnotationTransactionAttributeSource 的父类 AbstractFallbackTransactionAttributeSource
 		return (tas == null || tas.getTransactionAttribute(method, targetClass) != null);
 	}
 
@@ -74,7 +79,7 @@ abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPoi
 	 * Obtain the underlying TransactionAttributeSource (may be {@code null}).
 	 * To be implemented by subclasses.
 	 */
-	@Nullable
+	@Nullable // 被子类重写了是 AnnotationTransactionAttributeSource
 	protected abstract TransactionAttributeSource getTransactionAttributeSource();
 
 
@@ -86,12 +91,17 @@ abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPoi
 
 		@Override
 		public boolean matches(Class<?> clazz) {
+			// 如果是一些基础类，则返回false
 			if (TransactionalProxy.class.isAssignableFrom(clazz) ||
 					PlatformTransactionManager.class.isAssignableFrom(clazz) ||
 					PersistenceExceptionTranslator.class.isAssignableFrom(clazz)) {
 				return false;
 			}
 			TransactionAttributeSource tas = getTransactionAttributeSource();
+			/**
+			 * 调用 TransactionAttributeSource.isCandidateClass 方法来匹配
+			 * {@link AnnotationTransactionAttributeSource#isCandidateClass(Class)}
+			 */
 			return (tas == null || tas.isCandidateClass(clazz));
 		}
 	}

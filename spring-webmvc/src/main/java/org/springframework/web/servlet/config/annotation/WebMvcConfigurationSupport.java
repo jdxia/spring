@@ -283,6 +283,7 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 
 		RequestMappingHandlerMapping mapping = createRequestMappingHandlerMapping();
 		mapping.setOrder(0);
+		// 设置拦截器,  getInterceptors 获取拦截器
 		mapping.setInterceptors(getInterceptors(conversionService, resourceUrlProvider));
 		mapping.setContentNegotiationManager(contentNegotiationManager);
 		mapping.setCorsConfigurations(getCorsConfigurations());
@@ -337,6 +338,7 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 			ResourceUrlProvider mvcResourceUrlProvider) {
 		if (this.interceptors == null) {
 			InterceptorRegistry registry = new InterceptorRegistry();
+			// 调用addInterceptors()方法，从而会调用WebMvcConfigurerComposite的addInterceptors()方法，然后会遍历调用WebMvcConfigurer的addInterceptors()方法来添加拦截器
 			addInterceptors(registry);
 			registry.addInterceptor(new ConversionServiceExposingInterceptor(mvcConversionService));
 			registry.addInterceptor(new ResourceUrlProviderExposingInterceptor(mvcResourceUrlProvider));
@@ -351,6 +353,7 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 	 * @see InterceptorRegistry
 	 */
 	protected void addInterceptors(InterceptorRegistry registry) {
+		// 看子类 org.springframework.web.servlet.config.annotation.DelegatingWebMvcConfiguration.addInterceptors
 	}
 
 	/**

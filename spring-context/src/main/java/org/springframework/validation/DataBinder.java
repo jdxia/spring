@@ -49,6 +49,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.PatternMatchUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 
 /**
  * Binder that allows for setting property values onto a target object,
@@ -884,11 +885,16 @@ public class DataBinder implements PropertyEditorRegistry, TypeConverter {
 		Assert.state(target != null, "No target to validate");
 		BindingResult bindingResult = getBindingResult();
 		// Call each validator with the same binding result
+		// 获取验证器
 		for (Validator validator : getValidators()) {
 			if (!ObjectUtils.isEmpty(validationHints) && validator instanceof SmartValidator) {
 				((SmartValidator) validator).validate(target, bindingResult, validationHints);
 			}
 			else if (validator != null) {
+				/**
+				 * 进行真正的验证
+				 * {@link SpringValidatorAdapter#validate(Object, Errors)}
+				 */
 				validator.validate(target, bindingResult);
 			}
 		}

@@ -78,6 +78,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	@Override
 	public String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
 		if (definition instanceof AnnotatedBeanDefinition) {
+			// 获取注解指定的beanName
 			String beanName = determineBeanNameFromAnnotation((AnnotatedBeanDefinition) definition);
 			if (StringUtils.hasText(beanName)) {
 				// Explicit bean name found.
@@ -85,6 +86,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 			}
 		}
 		// Fallback: generate a unique default bean name.
+		// 注解没有指定, 那就开始生成
 		return buildDefaultBeanName(definition, registry);
 	}
 
@@ -105,7 +107,9 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 					Set<String> result = amd.getMetaAnnotationTypes(key);
 					return (result.isEmpty() ? Collections.emptySet() : result);
 				});
+				// 有 org.springframework.stereotype.Component 注解
 				if (isStereotypeWithNameValue(type, metaTypes, attributes)) {
+					// 就取value
 					Object value = attributes.get("value");
 					if (value instanceof String) {
 						String strVal = (String) value;
@@ -166,7 +170,20 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	protected String buildDefaultBeanName(BeanDefinition definition) {
 		String beanClassName = definition.getBeanClassName();
 		Assert.state(beanClassName != null, "No bean class name set");
+		/**
+		 * 首先，获取一个简短的 ClassName
+		 * 但是我们要注意内部类, 如果加上了 @Repository, 这时候它的名字就有点特殊了
+		 *
+		 * 假设我们是一个内部类，例如下面的类名：com.study.StudentController.InnerClassDataService
+		 * 在经过这个方法的处理后，我们得到的其实是下面这个名称：StudentController.InnerClassDataService
+		 * 然后 Introspector.decapitalize 之后就是 studentController.InnerClassDataService
+		 */
 		String shortClassName = ClassUtils.getShortName(beanClassName);
+		/**
+		 * 设置首字母大写或小写
+		 * 如果字符串长度大于1，并且前两个字符都是大写字母，则保持原样返回
+		 * 否则, 首字母小写
+		 */
 		return Introspector.decapitalize(shortClassName);
 	}
 

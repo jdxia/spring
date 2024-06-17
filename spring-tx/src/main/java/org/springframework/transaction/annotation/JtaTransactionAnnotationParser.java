@@ -47,6 +47,7 @@ public class JtaTransactionAnnotationParser implements TransactionAnnotationPars
 	@Override
 	@Nullable
 	public TransactionAttribute parseTransactionAnnotation(AnnotatedElement element) {
+		// 获取拥有@Transactional注解的类或方法
 		AnnotationAttributes attributes = AnnotatedElementUtils.getMergedAnnotationAttributes(
 				element, javax.transaction.Transactional.class);
 		if (attributes != null) {

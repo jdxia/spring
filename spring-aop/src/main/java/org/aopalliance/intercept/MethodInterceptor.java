@@ -43,6 +43,24 @@ package org.aopalliance.intercept;
 public interface MethodInterceptor extends Interceptor {
 
 	/**
+	 * @Before 对应的是AspectJMethodBeforeAdvice，在进行动态代理时会把AspectJMethodBeforeAdvice转成MethodBeforeAdviceInterceptor
+	 *   先执行advice对应的方法
+	 *   再执行MethodInvocation的proceed()，会执行下一个Interceptor，如果没有下一个Interceptor了，会执行target对应的方法
+	 * @After 对应的是AspectJAfterAdvice，直接实现了MethodInterceptor
+	 *   先执行MethodInvocation的proceed()，会执行下一个Interceptor，如果没有下一个Interceptor了，会执行target对应的方法
+	 *   再执行advice对应的方法
+	 * @Around 对应的是AspectJAroundAdvice，直接实现了MethodInterceptor
+	 *   直接执行advice对应的方法，由@Around自己决定要不要继续往后面调用
+	 * @AfterThrowing 对应的是AspectJAfterThrowingAdvice，直接实现了MethodInterceptor
+	 *   先执行MethodInvocation的proceed()，会执行下一个Interceptor，如果没有下一个Interceptor了，会执行target对应的方法
+	 *   如果上面抛了Throwable，那么则会执行advice对应的方法
+	 * @AfterReturning 对应的是AspectJAfterReturningAdvice，在进行动态代理时会把AspectJAfterReturningAdvice转成AfterReturningAdviceInterceptor
+	 *   先执行MethodInvocation的proceed()，会执行下一个Interceptor，如果没有下一个Interceptor了，会执行target对应的方法
+	 *   执行上面的方法后得到最终的方法的返回值
+	 *   再执行Advice对应的方法
+	 */
+
+	/**
 	 * Implement this method to perform extra treatments before and
 	 * after the invocation. Polite implementations would certainly
 	 * like to invoke {@link Joinpoint#proceed()}.

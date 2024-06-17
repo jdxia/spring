@@ -104,10 +104,12 @@ public class DelegatingIntroductionInterceptor extends IntroductionInfoSupport
 	@Override
 	@Nullable
 	public Object invoke(MethodInvocation mi) throws Throwable {
+		// 如果当前接口是，引介增强的接口
 		if (isMethodOnIntroducedInterface(mi)) {
 			// Using the following method rather than direct reflection, we
 			// get correct handling of InvocationTargetException
 			// if the introduced method throws an exception.
+			// 直接执行delegate 的方法
 			Object retVal = AopUtils.invokeJoinpointUsingReflection(this.delegate, mi.getMethod(), mi.getArguments());
 
 			// Massage return value if possible: if the delegate returned itself,
@@ -121,6 +123,7 @@ public class DelegatingIntroductionInterceptor extends IntroductionInfoSupport
 			return retVal;
 		}
 
+		// 如果不是，传递给cglib 的 下一个拦截器调用
 		return doProceed(mi);
 	}
 

@@ -98,13 +98,28 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 	@Override
 	protected boolean shouldSkip(Class<?> beanClass, String beanName) {
 		// TODO: Consider optimization by caching the list of the aspect names
+		// 寻找所有候选代理增强点
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
 		for (Advisor advisor : candidateAdvisors) {
+
+			/**
+			 * 如果是Aop 的动态封装都是基于 InstantiationModelAwarePointcutAdvisorImpl 也就是 InstantiationModelAwarePointcutAdvisor，自然是继承PointcutAdvisor
+			 * 如果 代理类基于 AspectJPointcutAdvisor  && aspectName==beanName，即当前初始化的类是ApspectJ类本身。则返回true，跳过代理
+			 *
+			 * Advisor两个子接口PointcutAdvisor、IntroductionAdvisor
+			 * IntroductionAdvisor与PointcutAdvisor 最本质上的区别就是，IntroductionAdvisor只能应用于类级别的拦截,只能使用Introduction型的Advice。
+			 * 而不能像PointcutAdvisor那样，可以使用任何类型的Pointcut,以及几乎任何类型的Advice。
+			 *
+			 * 而通过 Spring Aop 动态注入的是 Advisor 默认都是 InstantiationModelAwarePointcutAdvisorImpl 都满此条件。
+			 * 所以这里为false 的情况只有硬编码注入时IntroductionAdvisor 类型的 Advisor ,所以这里基本都会返回true。
+			 */
 			if (advisor instanceof AspectJPointcutAdvisor &&
+					// 判断beanName 是否是 @Aspect 注解修饰的bean的name。即自身不能代理自身。
 					((AspectJPointcutAdvisor) advisor).getAspectName().equals(beanName)) {
 				return true;
 			}
 		}
+		// 父类shouldSkip 判断了文件是否是 .ORIGINAL 后缀，是则跳过。
 		return super.shouldSkip(beanClass, beanName);
 	}
 

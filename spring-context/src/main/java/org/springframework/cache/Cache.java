@@ -20,6 +20,7 @@ import java.util.concurrent.Callable;
 
 import org.springframework.lang.Nullable;
 
+// 缓存的抽象, 定义了缓存的一些操作行为
 /**
  * Interface that defines common cache operations.
  *

@@ -34,6 +34,19 @@ import org.aopalliance.aop.Advice;
  * @author Juergen Hoeller
  */
 public interface Advisor {
+	/**
+	 * Advice是通知，Advisor是增强器，每个Advisor都会持有一个Advice
+	 * Advisor 包含Advice和Pointcut。个人认为是 Spring AOP完成增强动作的最小单元。
+	 *
+	 * Advisor：代表一般切面，它仅包含一个Advice。这个切面太宽泛，一般不会直接使用。
+	 * PointcutAdvisor：代表具有切点的切面，它包含Advice和Pointcut两个类。
+	 * IntroductionAdvisor：代表引介切面。引介切面是对应引介增强的特殊的切面，它应用于类层面上。
+	 *
+	 * Advisor两个子接口PointcutAdvisor、IntroductionAdvisor :
+	 * IntroductionAdvisor与PointcutAdvisor 最本质上的区别就是，
+	 * 		IntroductionAdvisor 只能应用于类级别的拦截,只能使用Introduction型的Advice。
+	 * 		而不能像 PointcutAdvisor 那样，可以使用任何类型的Pointcut,以及几乎任何类型的Advice
+	 */
 
 	/**
 	 * Common placeholder for an empty {@code Advice} to be returned from
@@ -52,7 +65,7 @@ public interface Advisor {
 	 * @see ThrowsAdvice
 	 * @see AfterReturningAdvice
 	 */
-	Advice getAdvice();
+	Advice getAdvice(); // 这个接口，可以获取Advisor持有的Advice
 
 	/**
 	 * Return whether this advice is associated with a particular instance

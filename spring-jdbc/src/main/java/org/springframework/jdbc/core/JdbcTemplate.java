@@ -368,18 +368,24 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	public <T> T execute(StatementCallback<T> action) throws DataAccessException {
 		Assert.notNull(action, "Callback object must not be null");
 
+		// 从数据源中获取数据连接
 		Connection con = DataSourceUtils.getConnection(obtainDataSource());
 		Statement stmt = null;
 		try {
+			// 创建 Statement
 			stmt = con.createStatement();
+			// 应用一些设置
 			applyStatementSettings(stmt);
+			// 回调执行个性化业务
 			T result = action.doInStatement(stmt);
+			// 警告处理
 			handleWarnings(stmt);
 			return result;
 		}
 		catch (SQLException ex) {
 			// Release Connection early, to avoid potential connection pool deadlock
 			// in the case when the exception translator hasn't been initialized yet.
+			// 释放数据库连接，避免当异常转换器没有被初始化的时候出现潜在的连接池死锁
 			String sql = getSql(action);
 			JdbcUtils.closeStatement(stmt);
 			stmt = null;
@@ -505,6 +511,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		/**
 		 * Callback to execute the update statement.
 		 */
+		// 该种形式的回调方法。不同形式的回调实现类并不相同。
 		class UpdateStatementCallback implements StatementCallback<Integer>, SqlProvider {
 			@Override
 			public Integer doInStatement(Statement stmt) throws SQLException {
@@ -520,6 +527,7 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			}
 		}
 
+		// 通过 execute 将 Statement  回调给 UpdateStatementCallback。
 		return updateCount(execute(new UpdateStatementCallback()));
 	}
 
@@ -609,10 +617,12 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 			logger.debug("Executing prepared SQL statement" + (sql != null ? " [" + sql + "]" : ""));
 		}
 
+		// 获取数据库连接, obtainDataSource() 就是简单的获取 dataSource
 		Connection con = DataSourceUtils.getConnection(obtainDataSource());
 		PreparedStatement ps = null;
 		try {
 			ps = psc.createPreparedStatement(con);
+			// 应用用户设定的数据参数
 			applyStatementSettings(ps);
 			T result = action.doInPreparedStatement(ps);
 			handleWarnings(ps);
@@ -1361,10 +1371,28 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * @see org.springframework.jdbc.datasource.DataSourceUtils#applyTransactionTimeout
 	 */
 	protected void applyStatementSettings(Statement stmt) throws SQLException {
+		/**
+		 * FetchSize ：该参数的目的是为了减少网络交互次数设计的。
+		 * 在访问 ResultSet时，如果它每次只从服务器上读取一行数据，会产生大量开销。
+		 * FetchSize 参数的作用是 在调用 rs.next时， ResultSet会一次性从服务器上取多少行数据回来。
+		 * 这样在下次 rs.next 时，他可以直接从内存中获取数据而不需要网络交互，提高了效率。但是这个设置可能会被某些jdbc驱动忽略。设置过大也会造成内存上升。
+		 */
 		int fetchSize = getFetchSize();
+		/**
+		 * 设置 fetchSize 属性
+		 *
+		 * 该参数的目的是为了减少网络交互次数设计的。在访问 ResultSet时，如果它每次只从服务器上读取一行数据，会产生大量开销。
+		 * FetchSize 参数的作用是 在调用 rs.next时， ResultSet会一次性从服务器上取多少行数据回来。
+		 * 这样在下次 rs.next 时，他可以直接从内存中获取数据而不需要网络交互，提高了效率。但是这个设置可能会被某些jdbc驱动忽略。设置过大也会造成内存上升。
+		 */
 		if (fetchSize != -1) {
 			stmt.setFetchSize(fetchSize);
 		}
+		/**
+		 * 设置 maxRows 属性
+		 *
+		 * 其作用是将此Statement对象生成的所有ResultSet对象可以包含的最大行数限制设置为给定值
+		 */
 		int maxRows = getMaxRows();
 		if (maxRows != -1) {
 			stmt.setMaxRows(maxRows);
@@ -1402,9 +1430,12 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	 * @throws SQLWarningException if not ignoring warnings
 	 * @see org.springframework.jdbc.SQLWarningException
 	 */
+	// 告警处理
 	protected void handleWarnings(Statement stmt) throws SQLException {
+		// 当设置为忽略警告时尝试只打印日志。
 		if (isIgnoreWarnings()) {
 			if (logger.isDebugEnabled()) {
+				// 如果日志开启的情况下打印日志
 				SQLWarning warningToLog = stmt.getWarnings();
 				while (warningToLog != null) {
 					logger.debug("SQLWarning ignored: SQL state '" + warningToLog.getSQLState() + "', error code '" +

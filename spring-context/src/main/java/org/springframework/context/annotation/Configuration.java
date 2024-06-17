@@ -418,10 +418,10 @@ import org.springframework.stereotype.Component;
  * @see org.springframework.core.env.Environment
  * @see org.springframework.test.context.ContextConfiguration
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.TYPE) // 它只能标注在类上
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Component
+@Component  //它也是个Spring的组件，会被扫描
 public @interface Configuration {
 
 	/**

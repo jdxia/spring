@@ -601,6 +601,7 @@ public abstract class BeanUtils {
 	 */
 	public static boolean isSimpleProperty(Class<?> type) {
 		Assert.notNull(type, "'type' must not be null");
+		// isSimpleValueType 判断是不是简单类型, 可以点进去看下
 		return isSimpleValueType(type) || (type.isArray() && isSimpleValueType(type.getComponentType()));
 	}
 
@@ -615,6 +616,7 @@ public abstract class BeanUtils {
 	 */
 	public static boolean isSimpleValueType(Class<?> type) {
 		return (Void.class != type && void.class != type &&
+				// 8大基本类型和包装类型
 				(ClassUtils.isPrimitiveOrWrapper(type) ||
 				Enum.class.isAssignableFrom(type) ||
 				CharSequence.class.isAssignableFrom(type) ||

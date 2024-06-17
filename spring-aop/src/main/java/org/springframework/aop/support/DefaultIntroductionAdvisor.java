@@ -110,7 +110,9 @@ public class DefaultIntroductionAdvisor implements IntroductionAdvisor, ClassFil
 
 	@Override
 	public void validateInterfaces() throws IllegalArgumentException {
+		// 这里的接口可以在 DefaultIntroductionAdvisor 构造时指定也可以通过 addInterface 方法添加。
 		for (Class<?> ifc : this.interfaces) {
+			// 这里要求 advice 必须是 DynamicIntroductionAdvice 实现类 && advice  必须实现了指定的引介增强接口
 			if (this.advice instanceof DynamicIntroductionAdvice &&
 					!((DynamicIntroductionAdvice) this.advice).implementsInterface(ifc)) {
 				throw new IllegalArgumentException("DynamicIntroductionAdvice [" + this.advice + "] " +

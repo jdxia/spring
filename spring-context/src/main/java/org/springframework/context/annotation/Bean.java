@@ -225,7 +225,7 @@ public @interface Bean {
 	 * @since 4.3.3
 	 * @see #name
 	 */
-	@AliasFor("name")
+	@AliasFor("name") 	//name的别名，效果等同于name
 	String[] value() default {};
 
 	/**
@@ -236,7 +236,7 @@ public @interface Bean {
 	 * attribute if no other attributes are declared.
 	 * @see #value
 	 */
-	@AliasFor("value")
+	@AliasFor("value") //用于指定Bean的名称
 	String[] name() default {};
 
 	/**
@@ -260,8 +260,10 @@ public @interface Bean {
 	 * that are not meant to get in the way of beans of the same type in other places.
 	 * @since 5.1
 	 */
-	boolean autowireCandidate() default true;
+	boolean autowireCandidate() default true; //布尔类型，用于限定当前的Bean是否可以自动注入到其他Bean中，默认是true
 
+	//在初始化Bean实例时需要调用的方法名称。默认没有要调用的方法
+	//注意initMethod所指定的方法必须是不带入参的方法，且该方法允许在运行时抛出异常
 	/**
 	 * The optional name of a method to call on the bean instance during initialization.
 	 * Not commonly used, given that the method may be called programmatically directly
@@ -300,5 +302,6 @@ public @interface Bean {
 	 * @see org.springframework.context.ConfigurableApplicationContext#close()
 	 */
 	String destroyMethod() default AbstractBeanDefinition.INFER_METHOD;
+	//在关闭应用上下文时要在Bean中调用的方法名称，默认不调用任何方法
 
 }

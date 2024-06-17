@@ -56,6 +56,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.function.SingletonSupplier;
 import org.springframework.util.function.SupplierUtils;
 
+// 缓存方面的基类，例如CacheInterceptor或AspectJ方面。这使基础的Spring缓存基础结构可以轻松地用于为任何方面系统实现方面
 /**
  * Base class for caching aspects, such as the {@link CacheInterceptor} or an
  * AspectJ aspect.
@@ -228,6 +229,7 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 						"Register a CacheManager bean or remove the @EnableCaching annotation from your configuration.");
 			}
 		}
+		// 检查有没有合适的CacheManager,并且将initialized设置为true
 		this.initialized = true;
 	}
 
@@ -249,6 +251,7 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 	protected Collection<? extends Cache> getCaches(
 			CacheOperationInvocationContext<CacheOperation> context, CacheResolver cacheResolver) {
 
+		//根据CacheResolver去找对应的caches
 		Collection<? extends Cache> caches = cacheResolver.resolveCaches(context);
 		if (caches.isEmpty()) {
 			throw new IllegalStateException("No cache could be resolved for '" +
@@ -333,6 +336,7 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 		this.evaluator.clear();
 	}
 
+	// 这个方法可以看做是处理@Cacheable, @CachePut, @CacheEvict @Caching这些注解的方法
 	@Nullable
 	protected Object execute(CacheOperationInvoker invoker, Object target, Method method, Object[] args) {
 		// Check whether aspect is enabled (to cope with cases where the AJ is pulled in automatically)
@@ -340,9 +344,12 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 			Class<?> targetClass = getTargetClass(target);
 			CacheOperationSource cacheOperationSource = getCacheOperationSource();
 			if (cacheOperationSource != null) {
+				//根据Class+Method获取 Collection<CacheOperation>
 				Collection<CacheOperation> operations = cacheOperationSource.getCacheOperations(method, targetClass);
 				if (!CollectionUtils.isEmpty(operations)) {
+					// 核心
 					return execute(invoker, method,
+							//注意这个对象在创建的时候会将已经确定的Cache等信息构建好。
 							new CacheOperationContexts(operations, method, args, target, targetClass));
 				}
 			}
@@ -371,14 +378,35 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 
 	@Nullable
 	private Object execute(final CacheOperationInvoker invoker, Method method, CacheOperationContexts contexts) {
+		/**
+		 * 非同步模式
+		 * 执行beforeInvocation属性为false的缓存删除操作
+		 * 检查缓存是否存在
+		 * 		如果缓存不存在，则执行方法，得到方法返回结果，并将结果Put到缓存中
+		 * 		如果缓存存在，但方法上没有定义@CachePut，最终方法返回的就是缓存值
+		 * 		如果缓存存在，但方法上定义了@CachePut，则需要执行方法，并将方法返回结果Put到缓存中，最终返回的也是方法执行结果（因为有Put操作，执行完Put操作后，方法返回结果和缓存值是一样的）
+		 * 执行beforeInvocation属性为true的缓存删除操作
+		 */
+
 		// Special handling of synchronized invocation
-		if (contexts.isSynchronized()) {
+		// 第一段：处理@Cacheable的同步模式，默认非同步
+		/**
+		 * 首先，只有@Cacheable注解才有sync属性，也就是同步模式的开关，其他注解是没有这个属性的。
+		 * 而且如果开启了同步模式，那么其他注解是不会生效的, 好像会报错
+		 */
+		if (contexts.isSynchronized()) { // 同步模式
+			// 只获取定义的@Cacheable注解
 			CacheOperationContext context = contexts.get(CacheableOperation.class).iterator().next();
 			if (isConditionPassing(context, CacheOperationExpressionEvaluator.NO_RESULT)) {
 				Object key = generateKey(context, CacheOperationExpressionEvaluator.NO_RESULT);
 				Cache cache = context.getCaches().iterator().next();
 				try {
-					return wrapCacheValue(method, cache.get(key, () -> unwrapReturnValue(invokeOperation(invoker))));
+					// 重点是执行 get 方法
+					return wrapCacheValue(method,
+							// 从cache中获取指定的key的值，如果不存在则执行lambda表达式
+							// Cache是一个接口，我们现在的缓存是redis，所以现在用的实现类为 RedisCache, 要引入 spring-data-redis
+							// 或者看下 ConcurrentHashMap , 里面有 computeIfAbsent
+							cache.get(key, () -> unwrapReturnValue(invokeOperation(invoker))));
 				}
 				catch (Cache.ValueRetrievalException ex) {
 					// The invoker wraps any Throwable in a ThrowableWrapper instance so we
@@ -388,48 +416,76 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 			}
 			else {
 				// No caching required, only call the underlying method
+				// 非同步模式, 直接执行方法
 				return invokeOperation(invoker);
 			}
 		}
 
 
 		// Process any early evictions
+		/**
+		 * 被@CacheEvict注解, 且属性beforeInvocation = true,表示需要在调用前执行清除缓存, 调用Cache的doGet方法或者 doClear方法
+		 *
+		 * contexts.get(CacheEvictOperation.class)表示获取当前方法上的@CacheEvict注解，也就是定义的缓存删除操作
+		 * 第二个参数就是beforeInvocation，传入的是true，表示获取需要在方法执行之前进行的缓存删除操作，第三个参数是用来进行条件判断的，可以不用管
+		 */
 		processCacheEvicts(contexts.get(CacheEvictOperation.class), true,
 				CacheOperationExpressionEvaluator.NO_RESULT);
 
 		// Check if we have a cached item matching the conditions
+		/**
+		 * 从当前方法上获取@Cacheable注解，并获取指定key在缓存中对应的value，相当于检查缓存是否命中
+		 * 那如果一个方法上有多个@Cacheable注解呢？
+		 * 依次遍历@Cacheable注解，有一个命中就直接返回
+		 */
 		Cache.ValueWrapper cacheHit = findCachedItem(contexts.get(CacheableOperation.class));
 
 		// Collect puts from any @Cacheable miss, if no cached item is found
+		// 如果没有命中缓存, 那么就构建需要缓存的数据包装对象,准备在执行真实方法后将数据放入缓存中
 		List<CachePutRequest> cachePutRequests = new LinkedList<>();
+		// cacheHit == null表示缓存没有命中
+		// 按@Cacheable注解的功能，缓存如果没有命中则应该执行方法，得到方法结果，并设置到缓存中
+		// 因此在缓存没有命中的情况下，@Cacheable注解就相当于一个@CachePut注解，也需要Put值到缓存中
 		if (cacheHit == null) {
+			//如果被@Cacheable标记,则需要将返回结果缓存,收集起来
 			collectPutRequests(contexts.get(CacheableOperation.class),
 					CacheOperationExpressionEvaluator.NO_RESULT, cachePutRequests);
 		}
+		// 因此以上代码就是在收集需要执行的Put操作，为什么只收集，但不执行Put操作呢？因为方法还没有执行呀，Put啥到缓存呢，因此这里只是先记录，后续得到方法返回结果后才会Put。
 
 		Object cacheValue;
 		Object returnValue;
 
-		if (cacheHit != null && !hasCachePut(contexts)) {
+		// 如果缓存存在并且没有定义Put操作，就不需要执行方法了，直接返回缓存中的值
+		// 命中了缓存,且不需要缓存结果信息
+		if (cacheHit != null &&
+				// hasCachePut()，这个方法是在检查当前所执行的方法上是否有Put操作
+				// 刚刚收集的是@Cacheable，而hasCachePut()判断的是@CachePut的Put操作
+				!hasCachePut(contexts)) {
 			// If there are no put requests, just use the cache hit
 			cacheValue = cacheHit.get();
 			returnValue = wrapCacheValue(method, cacheValue);
 		}
 		else {
+			// 如果缓存没有命中或定义了Put操作，则需要执行方法
 			// Invoke the method if we don't have a cache hit
 			returnValue = invokeOperation(invoker);
 			cacheValue = unwrapReturnValue(returnValue);
 		}
+		// 以上代码还没有真正将方法返回结果Put到缓存中，紧接着下面的源码就会进行Put了
 
 		// Collect any explicit @CachePuts
+		// 如果被@CachePut 标记,那么需要缓存,收集起来
 		collectPutRequests(contexts.get(CachePutOperation.class), cacheValue, cachePutRequests);
 
 		// Process any collected put requests, either from @CachePut or a @Cacheable miss
+		// 如果有需要被放入缓存的数据信息,那么就将其放入缓存, 调用Cache的doPut方法
 		for (CachePutRequest cachePutRequest : cachePutRequests) {
 			cachePutRequest.apply(cacheValue);
 		}
 
 		// Process any late evictions
+		// 被@CacheEvict注解, 且属性beforeInvocation = false, 则在方法调用后执行清除缓存
 		processCacheEvicts(contexts.get(CacheEvictOperation.class), false, cacheValue);
 
 		return returnValue;
@@ -473,6 +529,8 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 		for (CacheOperationContext context : contexts) {
 			CacheEvictOperation operation = (CacheEvictOperation) context.metadata.operation;
 			if (beforeInvocation == operation.isBeforeInvocation() && isConditionPassing(context, result)) {
+				// 执行缓存删除操作
+				// 内部会判断allEntries属性
 				performCacheEvict(context, operation, result);
 			}
 		}
@@ -513,10 +571,12 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 	@Nullable
 	private Cache.ValueWrapper findCachedItem(Collection<CacheOperationContext> contexts) {
 		Object result = CacheOperationExpressionEvaluator.NO_RESULT;
+		// 依次遍历@Cacheable
 		for (CacheOperationContext context : contexts) {
 			if (isConditionPassing(context, result)) {
 				Object key = generateKey(context, result);
 				Cache.ValueWrapper cached = findInCaches(context, key);
+				// 缓存命中就直接返回
 				if (cached != null) {
 					return cached;
 				}
@@ -704,6 +764,7 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 			this.metadata = metadata;
 			this.args = extractArgs(metadata.method, args);
 			this.target = target;
+			//这里去根据找CacheManager中找对应的Cache
 			this.caches = CacheAspectSupport.this.getCaches(this, metadata.cacheResolver);
 			this.cacheNames = createCacheNames(this.caches);
 		}

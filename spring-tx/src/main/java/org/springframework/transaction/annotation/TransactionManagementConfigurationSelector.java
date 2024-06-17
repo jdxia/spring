@@ -45,11 +45,22 @@ public class TransactionManagementConfigurationSelector extends AdviceModeImport
 	 */
 	@Override
 	protected String[] selectImports(AdviceMode adviceMode) {
+		/**
+		 * 先通过父类的 {@link org.springframework.context.annotation.AdviceModeImportSelector#selectImports(org.springframework.core.type.AnnotationMetadata)}
+		 * 然后调用过来的
+		 */
+
 		switch (adviceMode) {
+			// 默认是proxy
 			case PROXY:
-				return new String[] {AutoProxyRegistrar.class.getName(),
+				// 这边导入了2个类, 2个类都要看
+				return new String[] {
+						// 主要是注册了 InfrastructureAdvisorAutoProxyCreator 自动代理创建器。而 InfrastructureAdvisorAutoProxyCreator 的逻辑基本上和 Aop 的逻辑相同
+						AutoProxyRegistrar.class.getName(),
+						// 注册了事务实现的核心 Bean，包括 BeanFactoryTransactionAttributeSourceAdvisor、TransactionAttributeSource、TransactionInterceptor 等
 						ProxyTransactionManagementConfiguration.class.getName()};
 			case ASPECTJ:
+				// 表示不用动态代理, 用ASPECTJ技术, AspectJ 需要单独引入编译
 				return new String[] {determineTransactionAspectClass()};
 			default:
 				return null;

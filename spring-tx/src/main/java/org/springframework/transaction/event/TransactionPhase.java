@@ -32,7 +32,7 @@ public enum TransactionPhase {
 	 * Fire the event before transaction commit.
 	 * @see TransactionSynchronization#beforeCommit(boolean)
 	 */
-	BEFORE_COMMIT,
+	BEFORE_COMMIT, //指定目标方法在事务commit之前执行
 
 	/**
 	 * Fire the event after the commit has completed successfully.
@@ -42,7 +42,7 @@ public enum TransactionPhase {
 	 * @see TransactionSynchronization#afterCompletion(int)
 	 * @see TransactionSynchronization#STATUS_COMMITTED
 	 */
-	AFTER_COMMIT,
+	AFTER_COMMIT, //指定目标方法在事务commit之后执行
 
 	/**
 	 * Fire the event if the transaction has rolled back.
@@ -51,7 +51,7 @@ public enum TransactionPhase {
 	 * @see TransactionSynchronization#afterCompletion(int)
 	 * @see TransactionSynchronization#STATUS_ROLLED_BACK
 	 */
-	AFTER_ROLLBACK,
+	AFTER_ROLLBACK, // 指定目标方法在事务rollback之后执行
 
 	/**
 	 * Fire the event after the transaction has completed.
@@ -60,6 +60,6 @@ public enum TransactionPhase {
 	 * or rollback, respectively.
 	 * @see TransactionSynchronization#afterCompletion(int)
 	 */
-	AFTER_COMPLETION
+	AFTER_COMPLETION // 指定目标方法在事务完成时执行，这里的完成是指无论事务是成功提交还是事务回滚了
 
 }

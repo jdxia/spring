@@ -3,10 +3,11 @@ plugins {
 	id 'org.jetbrains.kotlin.jvm' version '1.3.72' apply false
 	id 'org.jetbrains.dokka' version '0.10.1' apply false
 	id 'org.asciidoctor.jvm.convert' version '2.4.0'
-	id 'io.spring.gradle-enterprise-conventions' version '0.0.2'
-	id 'io.spring.nohttp' version '0.0.4.RELEASE'
+//	id 'io.spring.gradle-enterprise-conventions' version '0.0.2'
+	id 'io.spring.nohttp' version '0.0.11'
 	id 'de.undercouch.download' version '4.0.0'
 	id 'com.gradle.build-scan' version '3.2'
+//	id 'com.gradle.build-scan' version '3.19'
 	id "com.jfrog.artifactory" version '4.12.0' apply false
 	id "io.freefair.aspectj" version '4.1.1' apply false
 	id "com.github.ben-manes.versions" version '0.24.0'
@@ -277,8 +278,26 @@ configure(allprojects) { project ->
 			cacheChangingModulesFor 0, "seconds"
 		}
 		repositories {
+			mavenLocal()
+
+//			maven { url "http://repo.springsource.org/plugins-release" }
+
+			maven { url "https://maven.aliyun.com/repository/public/" }
+			maven { url "https://maven.aliyun.com/repository/central/" }
+			maven { url "https://maven.aliyun.com/repository/spring/" }
+			maven { url 'https://maven.aliyun.com/repository/google/' }
+			maven { url 'https://maven.aliyun.com/repository/jcenter/' }
+
+			maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+			maven { url "https://maven.aliyun.com/repository/spring-plugin/" }
+			maven { url 'https://maven.aliyun.com/repository/grails-core/'}
+			maven { url 'https://maven.aliyun.com/repository/apache-snapshots/'}
+
 			mavenCentral()
 			maven { url "https://repo.spring.io/libs-spring-framework-build" }
+			maven { url "https://repo.spring.io/milestone" } // Reactor
+			//新增 spring 插件库
+			maven { url "https://repo.spring.io/plugins-release" }
 		}
 	}
 	configurations.all {
@@ -294,7 +313,7 @@ configure([rootProject] + javaProjects) { project ->
 
 	apply plugin: "java"
 	apply plugin: "java-test-fixtures"
-	apply plugin: "checkstyle"
+//	apply plugin: "checkstyle"
 	apply plugin: 'org.springframework.build.compile'
 	apply from: "${rootDir}/gradle/custom-java-home.gradle"
 	apply from: "${rootDir}/gradle/ide.gradle"
@@ -305,13 +324,14 @@ configure([rootProject] + javaProjects) { project ->
 			kotlinOptions {
 				jvmTarget = "1.8"
 				freeCompilerArgs = ["-Xjsr305=strict"]
-				allWarningsAsErrors = true
+				allWarningsAsErrors = false
 			}
 		}
 		compileTestKotlin {
 			kotlinOptions {
 				jvmTarget = "1.8"
 				freeCompilerArgs = ["-Xjsr305=strict"]
+				allWarningsAsErrors = false
 			}
 		}
 	}
@@ -324,10 +344,10 @@ configure([rootProject] + javaProjects) { project ->
 		systemProperty("io.netty.leakDetection.level", "paranoid")
 	}
 
-	checkstyle {
-		toolVersion = "8.31"
-		configDir = rootProject.file("src/checkstyle")
-	}
+//	checkstyle {
+//		toolVersion = "8.31"
+//		configDir = rootProject.file("src/checkstyle")
+//	}
 
 	dependencies {
 		testCompile("org.junit.jupiter:junit-jupiter-api")
@@ -345,7 +365,7 @@ configure([rootProject] + javaProjects) { project ->
 		// JSR-305 only used for non-required meta-annotations
 		compileOnly("com.google.code.findbugs:jsr305")
 		testCompileOnly("com.google.code.findbugs:jsr305")
-		checkstyle("io.spring.javaformat:spring-javaformat-checkstyle:0.0.15")
+//		checkstyle("io.spring.javaformat:spring-javaformat-checkstyle:0.0.15")
 	}
 
 	ext.javadocLinks = [

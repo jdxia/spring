@@ -100,9 +100,11 @@ public class InitDestroyAnnotationBeanPostProcessor
 
 	protected transient Log logger = LogFactory.getLog(getClass());
 
+	// @PostConstruct 注解
 	@Nullable
 	private Class<? extends Annotation> initAnnotationType;
 
+	// @PreDestroy 注解
 	@Nullable
 	private Class<? extends Annotation> destroyAnnotationType;
 
@@ -192,6 +194,7 @@ public class InitDestroyAnnotationBeanPostProcessor
 
 	@Override
 	public boolean requiresDestruction(Object bean) {
+		// 获取bean的class对象, 进行生命周期的查找, 有没有销毁的方法
 		return findLifecycleMetadata(bean.getClass()).hasDestroyMethods();
 	}
 
@@ -208,6 +211,7 @@ public class InitDestroyAnnotationBeanPostProcessor
 				metadata = this.lifecycleMetadataCache.get(clazz);
 				if (metadata == null) {
 					metadata = buildLifecycleMetadata(clazz);
+					// 缓存
 					this.lifecycleMetadataCache.put(clazz, metadata);
 				}
 				return metadata;
@@ -229,15 +233,20 @@ public class InitDestroyAnnotationBeanPostProcessor
 			final List<LifecycleElement> currInitMethods = new ArrayList<>();
 			final List<LifecycleElement> currDestroyMethods = new ArrayList<>();
 
+			// 在初始化前就执行这个方法, 把目标类的所有方法都遍历一遍
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
+				// 方法有 @PostConstruct 注解
 				if (this.initAnnotationType != null && method.isAnnotationPresent(this.initAnnotationType)) {
 					LifecycleElement element = new LifecycleElement(method);
+					// 把这个当做一个初始化的方法
 					currInitMethods.add(element);
 					if (logger.isTraceEnabled()) {
 						logger.trace("Found init method on class [" + clazz.getName() + "]: " + method);
 					}
 				}
+				// 方法有 @PreDestroy 注解
 				if (this.destroyAnnotationType != null && method.isAnnotationPresent(this.destroyAnnotationType)) {
+					// 把这个当做一个销毁的方法存起来
 					currDestroyMethods.add(new LifecycleElement(method));
 					if (logger.isTraceEnabled()) {
 						logger.trace("Found destroy method on class [" + clazz.getName() + "]: " + method);
@@ -245,12 +254,16 @@ public class InitDestroyAnnotationBeanPostProcessor
 				}
 			});
 
+			// 初始化的时候, 父类在前面, 先执行父类的初始化方法
 			initMethods.addAll(0, currInitMethods);
+			// 销毁没有上面的顺序要求, 所以直接加到后面
 			destroyMethods.addAll(currDestroyMethods);
+			// 遍历完了之后, 再看下父类
 			targetClass = targetClass.getSuperclass();
 		}
 		while (targetClass != null && targetClass != Object.class);
 
+		// 把上面找到的信息缓存起来
 		return (initMethods.isEmpty() && destroyMethods.isEmpty() ? this.emptyLifecycleMetadata :
 				new LifecycleMetadata(clazz, initMethods, destroyMethods));
 	}

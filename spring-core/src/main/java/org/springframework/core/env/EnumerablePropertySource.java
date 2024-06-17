@@ -43,6 +43,7 @@ import org.springframework.util.ObjectUtils;
  * @param <T> the source type
  */
 public abstract class EnumerablePropertySource<T> extends PropertySource<T> {
+	// 这是PropertySource的一个最重要分支，绝大部分配置源都继承于它。Enumerable：可枚举的
 
 	public EnumerablePropertySource(String name, T source) {
 		super(name, source);
@@ -68,6 +69,7 @@ public abstract class EnumerablePropertySource<T> extends PropertySource<T> {
 	 * Return the names of all properties contained by the
 	 * {@linkplain #getSource() source} object (never {@code null}).
 	 */
+	// 返回所有Property的names（keys）
 	public abstract String[] getPropertyNames();
 
 }

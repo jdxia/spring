@@ -78,11 +78,13 @@ public class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
 
 		Method[] methods = throwsAdvice.getClass().getMethods();
 		for (Method method : methods) {
+			// afterThrowing的第四个参数是异常
 			if (method.getName().equals(AFTER_THROWING) &&
 					(method.getParameterCount() == 1 || method.getParameterCount() == 4)) {
 				Class<?> throwableParam = method.getParameterTypes()[method.getParameterCount() - 1];
 				if (Throwable.class.isAssignableFrom(throwableParam)) {
 					// An exception handler to register...
+					// 会把异常和方法作为key value存起来
 					this.exceptionHandlerMap.put(throwableParam, method);
 					if (logger.isDebugEnabled()) {
 						logger.debug("Found exception handler method on throws advice: " + method);
@@ -109,9 +111,11 @@ public class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
 	@Override
 	public Object invoke(MethodInvocation mi) throws Throwable {
 		try {
+			// 执行被代理方法
 			return mi.proceed();
 		}
 		catch (Throwable ex) {
+			// 这边看能不能获取到上面匹配到的异常的方法
 			Method handlerMethod = getExceptionHandler(ex);
 			if (handlerMethod != null) {
 				invokeHandlerMethod(mi, ex, handlerMethod);
@@ -131,6 +135,7 @@ public class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
 		if (logger.isTraceEnabled()) {
 			logger.trace("Trying to find handler for exception of type [" + exceptionClass.getName() + "]");
 		}
+		// 从之前的map里面取出这个异常, 之前会把 异常和方法作为key value存起来
 		Method handler = this.exceptionHandlerMap.get(exceptionClass);
 		while (handler == null && exceptionClass != Throwable.class) {
 			exceptionClass = exceptionClass.getSuperclass();

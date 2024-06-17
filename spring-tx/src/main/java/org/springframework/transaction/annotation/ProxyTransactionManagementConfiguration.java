@@ -35,17 +35,22 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
  * @see EnableTransactionManagement
  * @see TransactionManagementConfigurationSelector
  */
-@Configuration(proxyBeanMethods = false)
+@Configuration(proxyBeanMethods = false) // 配置类, proxyBeanMethods = false应该是不需要生成配置类代理对象
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 public class ProxyTransactionManagementConfiguration extends AbstractTransactionManagementConfiguration {
 
+	// 向spring里面添加了一个 Advisor, 事务的增强器，该方法是否开始事务，是否需要代理该类都在该类中判断
 	@Bean(name = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public BeanFactoryTransactionAttributeSourceAdvisor transactionAdvisor(
 			TransactionAttributeSource transactionAttributeSource, TransactionInterceptor transactionInterceptor) {
 
+		// 事务增强器
 		BeanFactoryTransactionAttributeSourceAdvisor advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
+		// 可以看到下面两个bean都是 BeanFactoryTransactionAttributeSourceAdvisor 的属性
+		// 向事务增强器中注⼊ 属性解析器 transactionAttributeSource
 		advisor.setTransactionAttributeSource(transactionAttributeSource);
+		// 向事务增强器中注⼊ 事务拦截器 transactionInterceptor
 		advisor.setAdvice(transactionInterceptor);
 		if (this.enableTx != null) {
 			advisor.setOrder(this.enableTx.<Integer>getNumber("order"));
@@ -53,14 +58,18 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 		return advisor;
 	}
 
+	// 保存了事务相关的一些信息资源
 	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE) // 属性解析器 transactionAttributeSource
 	public TransactionAttributeSource transactionAttributeSource() {
+		// AnnotationTransactionAttributeSource 中定义了一个PointCut
+		// 并且 AnnotationTransactionAttributeSource 可以用来解析 @Transactional 注解, 并解析完得到一个 RuleBasedTransactionAttribute 对象
 		return new AnnotationTransactionAttributeSource();
 	}
 
+	// 事务拦截器，事务生成代理类时使用的代理拦截器，编写了事务的规则
 	@Bean
-	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	@Role(BeanDefinition.ROLE_INFRASTRUCTURE) // 事务拦截器 transactionInterceptor, 里面的invoke是事务的核心
 	public TransactionInterceptor transactionInterceptor(TransactionAttributeSource transactionAttributeSource) {
 		TransactionInterceptor interceptor = new TransactionInterceptor();
 		interceptor.setTransactionAttributeSource(transactionAttributeSource);

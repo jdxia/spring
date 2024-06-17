@@ -38,6 +38,7 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 	/**
 	 * The default advice mode attribute name.
 	 */
+	// 默认都叫mode
 	public static final String DEFAULT_ADVICE_MODE_ATTRIBUTE_NAME = "mode";
 
 
@@ -46,6 +47,7 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 	 * generic type {@code A}. The default is {@value #DEFAULT_ADVICE_MODE_ATTRIBUTE_NAME},
 	 * but subclasses may override in order to customize.
 	 */
+	// 显然也允许子类覆盖此方法
 	protected String getAdviceModeAttributeName() {
 		return DEFAULT_ADVICE_MODE_ATTRIBUTE_NAME;
 	}
@@ -64,9 +66,11 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 	 */
 	@Override
 	public final String[] selectImports(AnnotationMetadata importingClassMetadata) {
+		// 获取注解类型， 这里是 EnableTransactionManagement
 		Class<?> annType = GenericTypeResolver.resolveTypeArgument(getClass(), AdviceModeImportSelector.class);
 		Assert.state(annType != null, "Unresolvable type argument for AdviceModeImportSelector");
 
+		// 解析出 @EnableTransactionManagement 注解的参数
 		AnnotationAttributes attributes = AnnotationConfigUtils.attributesFor(importingClassMetadata, annType);
 		if (attributes == null) {
 			throw new IllegalArgumentException(String.format(
@@ -74,7 +78,9 @@ public abstract class AdviceModeImportSelector<A extends Annotation> implements 
 					annType.getSimpleName(), importingClassMetadata.getClassName()));
 		}
 
+		// 获取mode属性。EnableTransactionManagement 默认mode =  AdviceMode.PROXY
 		AdviceMode adviceMode = attributes.getEnum(getAdviceModeAttributeName());
+		// 调用 TransactionManagementConfigurationSelector#selectImports
 		String[] imports = selectImports(adviceMode);
 		if (imports == null) {
 			throw new IllegalArgumentException("Unknown AdviceMode: " + adviceMode);

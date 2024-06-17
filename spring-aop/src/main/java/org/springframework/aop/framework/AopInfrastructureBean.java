@@ -26,6 +26,7 @@ package org.springframework.aop.framework;
  * @see org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator
  * @see org.springframework.aop.scope.ScopedProxyFactoryBean
  */
+// Spring内部的这个接口没有任何实现，只是一个标记接口，如果Spring中的类实现了这个接口，就会被标记为Spring的基础设施类, 不会被自动代理
 public interface AopInfrastructureBean {
 
 }

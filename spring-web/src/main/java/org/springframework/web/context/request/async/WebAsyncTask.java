@@ -35,20 +35,28 @@ import org.springframework.web.context.request.NativeWebRequest;
  */
 public class WebAsyncTask<V> implements BeanFactoryAware {
 
+	// 正常执行的函数（通过WebAsyncTask的构造函数可以传进来）
 	private final Callable<V> callable;
 
+	// 处理超时时间（ms），可通过构造函数指定，也可以不指定（不会有超时处理）
 	private Long timeout;
 
+	// 执行任务的执行器。可以构造函数设置进来，手动指定。
 	private AsyncTaskExecutor executor;
 
+	// 若设置了，会根据此名称去IoC容器里找这个Bean （和上面二选一）
+	// 若传了executorName,请务必调用set方法设置beanFactory
 	private String executorName;
 
 	private BeanFactory beanFactory;
 
+	// 超时的回调
 	private Callable<V> timeoutCallback;
 
+	// 发生错误的回调
 	private Callable<V> errorCallback;
 
+	// 完成的回调（不管超时还是错误都会执行）
 	private Runnable completionCallback;
 
 
@@ -127,7 +135,7 @@ public class WebAsyncTask<V> implements BeanFactoryAware {
 	 * Return the AsyncTaskExecutor to use for concurrent handling,
 	 * or {@code null} if none specified.
 	 */
-	@Nullable
+	@Nullable  // 这是获取执行器的逻辑
 	public AsyncTaskExecutor getExecutor() {
 		if (this.executor != null) {
 			return this.executor;
@@ -177,6 +185,7 @@ public class WebAsyncTask<V> implements BeanFactoryAware {
 		this.completionCallback = callback;
 	}
 
+	// 最终执行超时回调、错误回调、完成回调都是通过这个拦截器实现的, 不是springmvc的拦截器
 	CallableProcessingInterceptor getInterceptor() {
 		return new CallableProcessingInterceptor() {
 			@Override

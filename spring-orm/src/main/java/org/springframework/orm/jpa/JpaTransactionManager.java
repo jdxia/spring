@@ -489,6 +489,7 @@ public class JpaTransactionManager extends AbstractPlatformTransactionManager
 		}
 	}
 
+	// 真正挂起的动作都是子类实现的，因为不同的组件实现方式不一样，以下是JPA的一个实现，实现起来并不复杂，就是把绑定的connection置空
 	@Override
 	protected Object doSuspend(Object transaction) {
 		JpaTransactionObject txObject = (JpaTransactionObject) transaction;

@@ -28,12 +28,12 @@ package org.springframework.aop;
  * @author Rod Johnson
  * @since 1.1.1
  */
-public interface IntroductionInfo {
+public interface IntroductionInfo { // 为AOP提供类级别的拦截
 
 	/**
 	 * Return the additional interfaces introduced by this Advisor or Advice.
 	 * @return the introduced interfaces
 	 */
-	Class<?>[] getInterfaces();
+	Class<?>[] getInterfaces(); // 这个接口可以定义AOP适用的类，不适用的类，可以不进行AOP拦截
 
 }

@@ -29,6 +29,14 @@ import org.springframework.lang.Nullable;
  */
 @SuppressWarnings("serial")
 public class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoProxyCreator {
+	/**
+	 * 父类的父类 实现了 SmartInstantiationAwareBeanPostProcessor 接⼝, 说明这是⼀个后置处理器
+	 *
+	 * InfrastructureAdvisorAutoProxyCreator 并没有实现什么逻辑，主要逻辑在其父类 AbstractAutoProxyCreator 中
+	 * AbstractAutoProxyCreator 是自动代理创建器的基础。绝大部分逻辑都是在其中实现的。
+	 * AbstractAutoProxyCreator 是AbstractAdvisorAutoProxyCreator 的父类，是 InfrastructureAdvisorAutoProxyCreator 的 "爷爷"类
+	 *
+	 */
 
 	@Nullable
 	private ConfigurableListableBeanFactory beanFactory;
@@ -40,6 +48,7 @@ public class InfrastructureAdvisorAutoProxyCreator extends AbstractAdvisorAutoPr
 		this.beanFactory = beanFactory;
 	}
 
+	// 校验bean是否合格
 	@Override
 	protected boolean isEligibleAdvisorBean(String beanName) {
 		return (this.beanFactory != null && this.beanFactory.containsBeanDefinition(beanName) &&

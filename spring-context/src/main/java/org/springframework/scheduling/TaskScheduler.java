@@ -49,6 +49,7 @@ import org.springframework.lang.Nullable;
  */
 public interface TaskScheduler {
 
+	// 调度一个任务，通过触发器实例指定触发时间周期
 	/**
 	 * Schedule the given {@link Runnable}, invoking it whenever the trigger
 	 * indicates a next execution time.
@@ -85,6 +86,7 @@ public interface TaskScheduler {
 		return schedule(task, Date.from(startTime));
 	}
 
+	// 指定起始时间调度一个任务 - 单次执行
 	/**
 	 * Schedule the given {@link Runnable}, invoking it at the specified execution time.
 	 * <p>Execution will end once the scheduler shuts down or the returned
@@ -98,6 +100,7 @@ public interface TaskScheduler {
 	 */
 	ScheduledFuture<?> schedule(Runnable task, Date startTime);
 
+	// 指定固定频率调度一个任务，period的单位是毫秒
 	/**
 	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
 	 * and subsequently with the given period.
@@ -117,6 +120,7 @@ public interface TaskScheduler {
 		return scheduleAtFixedRate(task, Date.from(startTime), period.toMillis());
 	}
 
+	// 指定起始时间和固定频率调度一个任务，period的单位是毫秒
 	/**
 	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
 	 * and subsequently with the given period.
@@ -182,6 +186,7 @@ public interface TaskScheduler {
 		return scheduleWithFixedDelay(task, Date.from(startTime), delay.toMillis());
 	}
 
+	// 指定起始时间和固定延迟间隔调度一个任务，delay的单位是毫秒
 	/**
 	 * Schedule the given {@link Runnable}, invoking it at the specified execution time
 	 * and subsequently with the given delay between the completion of one execution
@@ -216,6 +221,7 @@ public interface TaskScheduler {
 		return scheduleWithFixedDelay(task, delay.toMillis());
 	}
 
+	// 指定固定延迟间隔调度一个任务，delay的单位是毫秒
 	/**
 	 * Schedule the given {@link Runnable}, starting as soon as possible and invoking it with
 	 * the given delay between the completion of one execution and the start of the next.

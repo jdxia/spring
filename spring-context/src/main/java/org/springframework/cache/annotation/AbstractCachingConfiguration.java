@@ -31,6 +31,7 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.lang.Nullable;
 import org.springframework.util.CollectionUtils;
 
+// 抽象缓存配置，用于初始化配置。加载cacheManager、 cacheResolver、 keyGenerator
 /**
  * Abstract base {@code @Configuration} class providing common structure
  * for enabling Spring's annotation-driven cache management capability.
@@ -85,6 +86,7 @@ public abstract class AbstractCachingConfiguration implements ImportAware {
 		useCachingConfigurer(configurer);
 	}
 
+	// 把注解元数据属性解析出来
 	/**
 	 * Extract the configuration from the nominated {@link CachingConfigurer}.
 	 */

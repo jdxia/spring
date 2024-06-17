@@ -59,7 +59,7 @@ public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationA
 	 * @return the candidate constructors, or {@code null} if none specified
 	 * @throws org.springframework.beans.BeansException in case of errors
 	 */
-	@Nullable
+	@Nullable  // 推断构造方法有关的
 	default Constructor<?>[] determineCandidateConstructors(Class<?> beanClass, String beanName)
 			throws BeansException {
 
@@ -88,6 +88,8 @@ public interface SmartInstantiationAwareBeanPostProcessor extends InstantiationA
 	 * @throws org.springframework.beans.BeansException in case of errors
 	 */
 	default Object getEarlyBeanReference(Object bean, String beanName) throws BeansException {
+		// 循环依赖有关系的, 看子类 AbstractAutoProxyCreator
+		// 如果没有需要aop 就返回原始的
 		return bean;
 	}
 

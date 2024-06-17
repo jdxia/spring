@@ -123,8 +123,9 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 	 * <li>In default resolution mode, simple type arguments even if not with @{@link RequestParam}.
 	 * </ul>
 	 */
-	@Override
+	@Override // 支持参数的情况
 	public boolean supportsParameter(MethodParameter parameter) {
+		// 支持有RequestParam注解
 		if (parameter.hasParameterAnnotation(RequestParam.class)) {
 			if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
 				RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
@@ -135,14 +136,17 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 			}
 		}
 		else {
+			// 如果参数上有RequestPart注解就不支持
 			if (parameter.hasParameterAnnotation(RequestPart.class)) {
 				return false;
 			}
 			parameter = parameter.nestedIfOptional();
+			// 判断参数的类型是不是 MultipartFile
 			if (MultipartResolutionDelegate.isMultipartArgument(parameter)) {
 				return true;
 			}
 			else if (this.useDefaultResolution) {
+				// 判断方法参数类型是不是简单类型
 				return BeanUtils.isSimpleProperty(parameter.getNestedParameterType());
 			}
 			else {
@@ -158,7 +162,7 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 	}
 
 	@Override
-	@Nullable
+	@Nullable // 解析参数  @RequestParam("name")
 	protected Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception {
 		HttpServletRequest servletRequest = request.getNativeRequest(HttpServletRequest.class);
 
@@ -172,6 +176,8 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 		Object arg = null;
 		MultipartRequest multipartRequest = request.getNativeRequest(MultipartRequest.class);
 		if (multipartRequest != null) {
+			// 假如参数类型不是 MultipartFile , 但是又是一个 multipart/form-data请求
+			// 那么就拿出来 MultipartFile 对象, 然后后续转换成参数类型(需要提供类型转换器)
 			List<MultipartFile> files = multipartRequest.getFiles(name);
 			if (!files.isEmpty()) {
 				arg = (files.size() == 1 ? files.get(0) : files);

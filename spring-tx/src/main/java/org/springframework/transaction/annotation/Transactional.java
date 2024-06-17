@@ -56,7 +56,7 @@ import org.springframework.transaction.TransactionDefinition;
  * @see org.springframework.transaction.interceptor.DefaultTransactionAttribute
  * @see org.springframework.transaction.interceptor.RuleBasedTransactionAttribute
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ElementType.TYPE, ElementType.METHOD}) // 可以作用在类上面，也可以作用在方法上
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Documented
@@ -86,7 +86,7 @@ public @interface Transactional {
 	 * <p>Defaults to {@link Propagation#REQUIRED}.
 	 * @see org.springframework.transaction.interceptor.TransactionAttribute#getPropagationBehavior()
 	 */
-	Propagation propagation() default Propagation.REQUIRED;
+	Propagation propagation() default Propagation.REQUIRED; 	// 事务的传播行为
 
 	/**
 	 * The transaction isolation level.
@@ -110,7 +110,7 @@ public @interface Transactional {
 	 * transactions.
 	 * @see org.springframework.transaction.interceptor.TransactionAttribute#getTimeout()
 	 */
-	int timeout() default TransactionDefinition.TIMEOUT_DEFAULT;
+	int timeout() default TransactionDefinition.TIMEOUT_DEFAULT; 	// 事务的超时时间，默认是-1，表示永远不会超时
 
 	/**
 	 * A boolean flag that can be set to {@code true} if the transaction is
@@ -124,7 +124,7 @@ public @interface Transactional {
 	 * @see org.springframework.transaction.interceptor.TransactionAttribute#isReadOnly()
 	 * @see org.springframework.transaction.support.TransactionSynchronizationManager#isCurrentTransactionReadOnly()
 	 */
-	boolean readOnly() default false;
+	boolean readOnly() default false;     // 是否只读事务，如果是只读事务，Spring会在执行事务的时候会做相应的优化
 
 	/**
 	 * Defines zero (0) or more exception {@link Class classes}, which must be
@@ -140,7 +140,7 @@ public @interface Transactional {
 	 * @see #rollbackForClassName
 	 * @see org.springframework.transaction.interceptor.DefaultTransactionAttribute#rollbackOn(Throwable)
 	 */
-	Class<? extends Throwable>[] rollbackFor() default {};
+	Class<? extends Throwable>[] rollbackFor() default {};      // 回滚的异常类型
 
 	/**
 	 * Defines zero (0) or more exception names (for exceptions which must be a

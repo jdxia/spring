@@ -60,6 +60,11 @@ import org.springframework.validation.annotation.Validated;
 @SuppressWarnings("serial")
 public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvisingPostProcessor
 		implements InitializingBean {
+	/**
+	 * 这个类会被springboot的 {@link org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration} 注入
+	 *
+	 * 看这个类的 afterPropertiesSet 定义了切点和切面逻辑
+	 */
 
 	private Class<? extends Annotation> validatedAnnotationType = Validated.class;
 
@@ -110,7 +115,10 @@ public class MethodValidationPostProcessor extends AbstractBeanFactoryAwareAdvis
 
 	@Override
 	public void afterPropertiesSet() {
+		// 切点 validatedAnnotationType = Validated.class
 		Pointcut pointcut = new AnnotationMatchingPointcut(this.validatedAnnotationType, true);
+
+		// 切面
 		this.advisor = new DefaultPointcutAdvisor(pointcut, createMethodValidationAdvice(this.validator));
 	}
 

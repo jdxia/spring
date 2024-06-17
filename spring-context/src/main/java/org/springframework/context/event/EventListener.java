@@ -102,7 +102,7 @@ public @interface EventListener {
 	 * However, if this attribute is specified with multiple values,
 	 * the annotated method must <em>not</em> declare any parameters.
 	 */
-	@AliasFor("value")
+	@AliasFor("value") // 标注此方法需要处理的事件类型
 	Class<?>[] classes() default {};
 
 	/**
@@ -126,6 +126,9 @@ public @interface EventListener {
 	 * if parameter names are available in the compiled byte code.</li>
 	 * </ul>
 	 */
+	// 则个条件大多数使用者都非常的默认，毕竟绝大多数情况下都是不需要使用的~~~
+	// 总体上，它是根据条件，判断此handler是否需要处理这事件  更加细粒度的控制  支持SpEL表达值
+	// 内置的#root.event表示当前事件，#root.args当前方法的入参（数组形式）
 	String condition() default "";
 
 }

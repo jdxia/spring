@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:task="http://www.springframework.org/schema/task"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/task
+         http://www.springframework.org/schema/task/spring-task.xsd">
+
+
+	<!-- 将User对象交给spring容器管理 -->
+	<!-- Bean元素:使用该元素描述需要spring容器管理的对象
+	class属性:被管理对象的完整类名.
+	name属性:给被管理的对象起个名字.获得对象时根据该名称获得对象.
+	可以重复.可以使用特殊字符.
+	id属性: 与name属性一模一样.
+	可以指定多个名字,名字之间用逗号,分号,或空格分割
+	名称不可重复.不能使用特殊字符.
+	结论: 尽量使用name属性.
+	-->
+	<!--	<bean name="user" class="org.studyspring.demo.bean.xml.User"/>-->
+	<!--	<bean name="myBeanFactoryPostProcessor" class="org.studyspring.demo.config.MyBeanFactoryPostProcessor"/>-->
+	<!--	<bean name="myBeanPostProcessor" class="org.studyspring.demo.config.MyBeanPostProcessor"/>-->
+
+	<!-- 开启组件扫描 -->
+	<context:component-scan base-package="org.studyspring.**"/>
+
+	<!-- 相当于 @EnableAspectJAutoProxy，开启AspectJ自动代理 -->
+	<aop:aspectj-autoproxy/>
+
+	<!-- 相当于 @EnableTransactionManagement，开启注解驱动的事务管理 -->
+	<tx:annotation-driven/>
+
+	<!-- 相当于 @EnableAsync，允许异步任务注解 -->
+	<task:annotation-driven/>
+
+
+
+</beans>

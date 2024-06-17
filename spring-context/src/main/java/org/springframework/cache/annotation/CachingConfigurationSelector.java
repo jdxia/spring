@@ -25,6 +25,7 @@ import org.springframework.context.annotation.AutoProxyRegistrar;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
+// 选择使用哪种AbstractCachingConfiguration
 /**
  * Selects which implementation of {@link AbstractCachingConfiguration} should
  * be used based on the value of {@link EnableCaching#mode} on the importing
@@ -70,6 +71,7 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 	public String[] selectImports(AdviceMode adviceMode) {
 		switch (adviceMode) {
 			case PROXY:
+				// 默认
 				return getProxyImports();
 			case ASPECTJ:
 				return getAspectJImports();
@@ -85,8 +87,10 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 	private String[] getProxyImports() {
 		List<String> result = new ArrayList<>(3);
 		result.add(AutoProxyRegistrar.class.getName());
+		// 重点 ProxyCachingConfiguration 配置类
 		result.add(ProxyCachingConfiguration.class.getName());
 		if (jsr107Present && jcacheImplPresent) {
+			// 需要jcache存在才生效的
 			result.add(PROXY_JCACHE_CONFIGURATION_CLASS);
 		}
 		return StringUtils.toStringArray(result);

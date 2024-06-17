@@ -96,6 +96,11 @@ public abstract class AbstractFallbackCacheOperationSource implements CacheOpera
 			return (cached != NULL_CACHING_ATTRIBUTE ? cached : null);
 		}
 		else {
+			//这里去找目标方法上的注解,如@Cachable @CachePut 等
+
+			/**
+			 * cacheKey是由method和class构造成的MethodClassKey,如果缓存中有缓存操作集合直接返回,否则调用computeCacheOperations计算
+			 */
 			Collection<CacheOperation> cacheOps = computeCacheOperations(method, targetClass);
 			if (cacheOps != null) {
 				if (logger.isTraceEnabled()) {

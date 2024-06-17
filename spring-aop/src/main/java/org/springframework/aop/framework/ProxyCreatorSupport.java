@@ -44,6 +44,8 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 	 * Create a new ProxyCreatorSupport instance.
 	 */
 	public ProxyCreatorSupport() {
+		// 注意这里实例化的是一个 DefaultAopProxyFactory，所以下面的 createAopProxy() 方法
+		// 中调用的也是 DefaultAopProxyFactory 的实现
 		this.aopProxyFactory = new DefaultAopProxyFactory();
 	}
 
@@ -100,8 +102,10 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 	 */
 	protected final synchronized AopProxy createAopProxy() {
 		if (!this.active) {
+			// 第一次调用此方法时，将其状态设置为开启，并初始化listener，listener可以用来监听一些时间
 			activate();
 		}
+		// 看 createAopProxy
 		return getAopProxyFactory().createAopProxy(this);
 	}
 

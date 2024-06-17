@@ -43,6 +43,12 @@ import org.springframework.lang.Nullable;
  * @see org.springframework.transaction.interceptor.TransactionInterceptor
  */
 public interface PlatformTransactionManager extends TransactionManager {
+	// PlatformTransactionManager顶级接口定义了最核心的事务管理方法，
+	// 下面一层是AbstractPlatformTransactionManager抽象类，实现了PlatformTransactionManager接口的方法并定义了一些抽象方法，供子类拓展
+
+	// 最后下面一层是2个经典事务管理器：
+	// 1.DataSourceTransactionmanager,即JDBC单数据库事务管理器，基于Connection实现，
+	// 2.JtaTransactionManager,即多数据库事务管理器（又叫做分布式事务管理器），其实现了JTA规范，使用XA协议进行两阶段提交。
 
 	/**
 	 * Return a currently active transaction or create a new one, according to
@@ -67,7 +73,7 @@ public interface PlatformTransactionManager extends TransactionManager {
 	 * @see TransactionDefinition#getTimeout
 	 * @see TransactionDefinition#isReadOnly
 	 */
-	TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+	TransactionStatus getTransaction(@Nullable TransactionDefinition definition) // 获取事务的执行状态
 			throws TransactionException;
 
 	/**
@@ -97,7 +103,7 @@ public interface PlatformTransactionManager extends TransactionManager {
 	 * is already completed (that is, committed or rolled back)
 	 * @see TransactionStatus#setRollbackOnly
 	 */
-	void commit(TransactionStatus status) throws TransactionException;
+	void commit(TransactionStatus status) throws TransactionException; // 提交事务
 
 	/**
 	 * Perform a rollback of the given transaction.
@@ -115,6 +121,6 @@ public interface PlatformTransactionManager extends TransactionManager {
 	 * @throws IllegalTransactionStateException if the given transaction
 	 * is already completed (that is, committed or rolled back)
 	 */
-	void rollback(TransactionStatus status) throws TransactionException;
+	void rollback(TransactionStatus status) throws TransactionException;     // 回滚事务
 
 }

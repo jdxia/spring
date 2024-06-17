@@ -60,6 +60,13 @@ import org.springframework.util.StringUtils;
  * @since 3.2
  */
 public final class SpringFactoriesLoader {
+	/**
+	 * 它是一个框架内部内部使用的通用工厂加载机制。
+	 *
+	 * SpringFactoriesLoader 从 META-INF/spring.factories 文件中加载并实例化给定类型的工厂，这些文件可能存在于类路径中的多个jar包中。spring.factories 文件必须采用 properties 格式，其中key是接口或抽象类的全限定名，而value是用逗号分隔的实现类的全限定类名列表。
+	 * 例如：example.MyService=example.MyServiceImpl1,example.MyServiceImpl2
+	 * 其中 example.MyService 是接口的名称，而 MyServiceImpl1 和 MyServiceImpl2 是两个该接口的实现类。
+	 */
 
 	/**
 	 * The location to look for factories.
@@ -122,23 +129,31 @@ public final class SpringFactoriesLoader {
 		return loadSpringFactories(classLoader).getOrDefault(factoryTypeName, Collections.emptyList());
 	}
 
+	// 这个方法仅接收了一个类加载器
 	private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
+		// 获取本地缓存
 		MultiValueMap<String, String> result = cache.get(classLoader);
+		// 第一次肯定没有缓存
 		if (result != null) {
 			return result;
 		}
 
 		try {
+			// 加载spring.factories
+			// 获取当前 classpath 下所有jar包中有的 spring.factories 文件，并将它们加载到内存中
 			Enumeration<URL> urls = (classLoader != null ?
 					classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
 					ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));
 			result = new LinkedMultiValueMap<>();
+			// 缓存到本地
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
 				UrlResource resource = new UrlResource(url);
+				// 拿到每一个文件，并用 Properties 方式加载文件，之后把这个文件中每一组键值对都加载出来，放入 MultiValueMap 中
 				Properties properties = PropertiesLoaderUtils.loadProperties(resource);
 				for (Map.Entry<?, ?> entry : properties.entrySet()) {
 					String factoryTypeName = ((String) entry.getKey()).trim();
+					// 如果一个接口/抽象类有多个对应的目标类，则使用英文逗号隔开。StringUtils.commaDelimitedListToStringArray 会将大字符串拆成一个一个的全限定类名。
 					for (String factoryImplementationName : StringUtils.commaDelimitedListToStringArray((String) entry.getValue())) {
 						result.add(factoryTypeName, factoryImplementationName.trim());
 					}

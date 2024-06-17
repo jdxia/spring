@@ -23,7 +23,15 @@ package org.springframework.aop;
  *
  * @author Rod Johnson
  */
-public interface PointcutAdvisor extends Advisor {
+public interface PointcutAdvisor extends Advisor { //为AOP提供方法级别的拦截
+	/**
+	 * DefaultPointcutAdvisor：最常用的切面类型
+	 * NameMatchMethodPointcutAdvisor:通过该类可以定义按方法名定义切点的切面
+	 * RegexpMethodPointcutAdvisor:对于按正则表达式匹配方法名进行切点定义的切面，可以通过扩展该实现类进行操作。
+	 * StaticMethodMatcherPointcutAdvisor:静态方法匹配器切点定义的切面，默认情况下，匹配所有的目标类。
+	 * AspectJExpressionPointcutAdvisor：用于AspectJ切点表达式定义切点的切面
+	 * AspectJPointcutAdvisor:用于AspectJ语法定义的切面。
+	 */
 
 	/**
 	 * Get the Pointcut that drives this advisor.

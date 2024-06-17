@@ -40,10 +40,16 @@ import org.springframework.util.Assert;
  * @see #determineCurrentLookupKey()
  */
 public abstract class AbstractRoutingDataSource extends AbstractDataSource implements InitializingBean {
+	/**
+	 * Spring提供的动态数据源的抽象类
+	 * 实现了 InitializingBean, 那它肯定在 afterPropertiesSet 会做操作
+	 */
 
+	// 目标数据源，也就是我们要切换的多个数据源都存放到这里
 	@Nullable
 	private Map<Object, Object> targetDataSources;
 
+	// 默认数据源，如果想指定默认数据源，可以给它赋值
 	@Nullable
 	private Object defaultTargetDataSource;
 
@@ -51,9 +57,12 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 
 	private DataSourceLookup dataSourceLookup = new JndiDataSourceLookup();
 
+	// 存放真正的数据源信息，将 targetDataSources 的信息copy一份
+	// 不同之处在于targetDataSources的value是Object类型，而resolvedDataSources的value是DataSource类型。
 	@Nullable
 	private Map<Object, DataSource> resolvedDataSources;
 
+	// 默认数据源，将defaultTargetDataSource转为DataSource赋值给resolvedDefaultDataSource
 	@Nullable
 	private DataSource resolvedDefaultDataSource;
 
@@ -115,12 +124,18 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 
 	@Override
 	public void afterPropertiesSet() {
+		// 在配置多数据源时，至少需要传入一个数据源
 		if (this.targetDataSources == null) {
 			throw new IllegalArgumentException("Property 'targetDataSources' is required");
 		}
+
+		// 初始化了 resolvedDataSources 大小
+		// resolvedDataSources只是把targetDataSources的内容copy了一份，不同之处在于targetDataSources的value是Object类型，而resolvedDataSources的value是DataSource类型
 		this.resolvedDataSources = new HashMap<>(this.targetDataSources.size());
 		this.targetDataSources.forEach((key, value) -> {
+			// 直接返回了
 			Object lookupKey = resolveSpecifiedLookupKey(key);
+			// 只是把Object转为DataSource对象返回
 			DataSource dataSource = resolveSpecifiedDataSource(value);
 			this.resolvedDataSources.put(lookupKey, dataSource);
 		});
@@ -152,9 +167,11 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	 * @throws IllegalArgumentException in case of an unsupported value type
 	 */
 	protected DataSource resolveSpecifiedDataSource(Object dataSource) throws IllegalArgumentException {
+		//如果value 直接是 DataSource类型则直接返回即可
 		if (dataSource instanceof DataSource) {
 			return (DataSource) dataSource;
 		}
+		// 如果是 String类型，则通过 dataSourceLookup (默认实现是JndiDataSourceLookup) 根据 value 去寻找
 		else if (dataSource instanceof String) {
 			return this.dataSourceLookup.getDataSource((String) dataSource);
 		}
@@ -165,8 +182,10 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	}
 
 
+	// 从数据源中获取连接
 	@Override
 	public Connection getConnection() throws SQLException {
+		// 先确定目标数据源, 再获取链接
 		return determineTargetDataSource().getConnection();
 	}
 
@@ -199,8 +218,11 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	 */
 	protected DataSource determineTargetDataSource() {
 		Assert.notNull(this.resolvedDataSources, "DataSource router not initialized");
+		// 引用抽象方法, 具体选择哪个数据源, 该方法需要我们继承AbstractRoutingDataSource来重写
+		// 该方法返回一个key，该key就是数据源name，我们根据key去resolvedDataSources中取到DataSource，然后将DataSource返回
 		Object lookupKey = determineCurrentLookupKey();
 		DataSource dataSource = this.resolvedDataSources.get(lookupKey);
+		// 如果没有获取到对应数据源 && (开启宽容后备 || lookupKey == null)。则使用默认的数据源
 		if (dataSource == null && (this.lenientFallback || lookupKey == null)) {
 			dataSource = this.resolvedDefaultDataSource;
 		}
@@ -217,7 +239,7 @@ public abstract class AbstractRoutingDataSource extends AbstractDataSource imple
 	 * to match the stored lookup key type, as resolved by the
 	 * {@link #resolveSpecifiedLookupKey} method.
 	 */
-	@Nullable
+	@Nullable  	// 供子类实现，获取数据源的key
 	protected abstract Object determineCurrentLookupKey();
 
 }

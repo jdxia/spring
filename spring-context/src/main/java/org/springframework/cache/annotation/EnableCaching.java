@@ -172,6 +172,7 @@ import org.springframework.core.Ordered;
 @Import(CachingConfigurationSelector.class)
 public @interface EnableCaching {
 
+	//是否直接代理目标类
 	/**
 	 * Indicate whether subclass-based (CGLIB) proxies are to be created as opposed
 	 * to standard Java interface-based proxies. The default is {@code false}. <strong>
@@ -185,6 +186,7 @@ public @interface EnableCaching {
 	 */
 	boolean proxyTargetClass() default false;
 
+	//通知模式,默认是代理
 	/**
 	 * Indicate how caching advice should be applied.
 	 * <p><b>The default is {@link AdviceMode#PROXY}.</b>
@@ -197,6 +199,7 @@ public @interface EnableCaching {
 	 */
 	AdviceMode mode() default AdviceMode.PROXY;
 
+	//顺序
 	/**
 	 * Indicate the ordering of the execution of the caching advisor
 	 * when multiple advices are applied at a specific joinpoint.

@@ -63,26 +63,31 @@ public final class WebAsyncManager {
 
 	private static final Object RESULT_NONE = new Object();
 
+	// 执行异步任务的线程池
 	private static final AsyncTaskExecutor DEFAULT_TASK_EXECUTOR =
 			new SimpleAsyncTaskExecutor(WebAsyncManager.class.getSimpleName());
 
 	private static final Log logger = LogFactory.getLog(WebAsyncManager.class);
 
+	// 用于 Callable 异步任务的超时拦截器
 	private static final CallableProcessingInterceptor timeoutCallableInterceptor =
 			new TimeoutCallableProcessingInterceptor();
 
+	// 用于 DeferredResult 的超时拦截器
 	private static final DeferredResultProcessingInterceptor timeoutDeferredResultInterceptor =
 			new TimeoutDeferredResultProcessingInterceptor();
 
 	private static Boolean taskExecutorWarning = true;
 
 
+	// 异步请求对象（StandardServletAsyncWebRequest）
 	private AsyncWebRequest asyncWebRequest;
 
 	private AsyncTaskExecutor taskExecutor = DEFAULT_TASK_EXECUTOR;
 
 	private volatile Object concurrentResult = RESULT_NONE;
 
+	// 一些额外对象，比如：视图解析器
 	private volatile Object[] concurrentResultContext;
 
 	/*
@@ -264,6 +269,7 @@ public final class WebAsyncManager {
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public void startCallableProcessing(Callable<?> callable, Object... processingContext) throws Exception {
 		Assert.notNull(callable, "Callable must not be null");
+		// startCallableProcessing 往下看
 		startCallableProcessing(new WebAsyncTask(callable), processingContext);
 	}
 
@@ -282,6 +288,8 @@ public final class WebAsyncManager {
 		Assert.notNull(webAsyncTask, "WebAsyncTask must not be null");
 		Assert.state(this.asyncWebRequest != null, "AsyncWebRequest must not be null");
 
+		// 超时控制,拦截器配置
+
 		Long timeout = webAsyncTask.getTimeout();
 		if (timeout != null) {
 			this.asyncWebRequest.setTimeout(timeout);
@@ -296,9 +304,9 @@ public final class WebAsyncManager {
 		}
 
 		List<CallableProcessingInterceptor> interceptors = new ArrayList<>();
-		interceptors.add(webAsyncTask.getInterceptor());
-		interceptors.addAll(this.callableInterceptors.values());
-		interceptors.add(timeoutCallableInterceptor);
+		interceptors.add(webAsyncTask.getInterceptor()); // CallableProcessingInterceptor
+		interceptors.addAll(this.callableInterceptors.values()); // RequestBindingInterceptor
+		interceptors.add(timeoutCallableInterceptor); // TimeoutCallableProcessingInterceptor
 
 		final Callable<?> callable = webAsyncTask.getCallable();
 		final CallableInterceptorChain interceptorChain = new CallableInterceptorChain(interceptors);
@@ -328,12 +336,17 @@ public final class WebAsyncManager {
 				interceptorChain.triggerAfterCompletion(this.asyncWebRequest, callable));
 
 		interceptorChain.applyBeforeConcurrentHandling(this.asyncWebRequest, callable);
+
+		//注意这里，开启Servlet3.0异步模式, 这只是开启
 		startAsyncProcessing(processingContext);
 		try {
 			Future<?> future = this.taskExecutor.submit(() -> {
 				Object result = null;
 				try {
+					// 这个不重要, timeoutCallableInterceptor, webAsyncTask...
 					interceptorChain.applyPreProcess(this.asyncWebRequest, callable);
+
+					// 异步执行Callable
 					result = callable.call();
 				}
 				catch (Throwable ex) {
@@ -342,11 +355,19 @@ public final class WebAsyncManager {
 				finally {
 					result = interceptorChain.applyPostProcess(this.asyncWebRequest, callable, result);
 				}
+				/**
+				 * 完成任务后在这里重新dispatch, 通知异步执行结束 调用dispatch(), 往下看
+				 * result就是你异步callback的return值
+				 *
+				 * Callable返回结果后，Spring MVC会调用asyncContext.dispatch()将请求重新交给Servlet容器完成，
+				 * Servlet容器又将请求转发到DispatcherServlet，DispatcherServlet又被调用了一次，所以拦截器的preHandle()方法会被调用两次，此时结果已经产生，直接返回即可
+				 */
 				setConcurrentResultAndDispatch(result);
 			});
 			interceptorChain.setTaskFuture(future);
 		}
 		catch (RejectedExecutionException ex) {
+			//异常处理
 			Object result = interceptorChain.applyPostProcess(this.asyncWebRequest, callable, ex);
 			setConcurrentResultAndDispatch(result);
 			throw ex;
@@ -391,6 +412,7 @@ public final class WebAsyncManager {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Async result set but request already complete: " + formatRequestUri());
 			}
+
 			return;
 		}
 
@@ -398,6 +420,9 @@ public final class WebAsyncManager {
 			boolean isError = result instanceof Throwable;
 			logger.debug("Async " + (isError ? "error" : "result set") + ", dispatch to " + formatRequestUri());
 		}
+		//调用AsyncContext.dispatch() 通知servlet容器再起发起请求,
+		// this.asyncWebRequest :StandardServletWebRequest
+		// DispatcherServlet 中 doDispatch 重新被调用
 		this.asyncWebRequest.dispatch();
 	}
 
@@ -415,24 +440,35 @@ public final class WebAsyncManager {
 	 * @see #getConcurrentResult()
 	 * @see #getConcurrentResultContext()
 	 */
+	// 异步任务处理的方法
 	public void startDeferredResultProcessing(
 			final DeferredResult<?> deferredResult, Object... processingContext) throws Exception {
+		// deferredResult 就是 controller 返回的 DeferredResult 对象（相比于同步方法，异步请求的方法需要由 DeferredResult 进行封装）
+
 
 		Assert.notNull(deferredResult, "DeferredResult must not be null");
+		// 这里的 asyncWebRequest 就是对 Request 的封装
 		Assert.state(this.asyncWebRequest != null, "AsyncWebRequest must not be null");
 
+		// 设置超时时间
 		Long timeout = deferredResult.getTimeoutValue();
 		if (timeout != null) {
 			this.asyncWebRequest.setTimeout(timeout);
 		}
 
+		// 注意这里是线程独享的拦截器，每个请求之间互相独立
 		List<DeferredResultProcessingInterceptor> interceptors = new ArrayList<>();
+		// deferredResult 自定义的拦截器
 		interceptors.add(deferredResult.getInterceptor());
+		// 系统定义的拦截器
 		interceptors.addAll(this.deferredResultInterceptors.values());
+		// 超时处理拦截器
 		interceptors.add(timeoutDeferredResultInterceptor);
 
+		// 封装成拦截器链
 		final DeferredResultInterceptorChain interceptorChain = new DeferredResultInterceptorChain(interceptors);
 
+		// 将超时拦截器注册到请求对象上
 		this.asyncWebRequest.addTimeoutHandler(() -> {
 			try {
 				interceptorChain.triggerAfterTimeout(this.asyncWebRequest, deferredResult);
@@ -442,6 +478,7 @@ public final class WebAsyncManager {
 			}
 		});
 
+		// 为请求对象注册错误处理器
 		this.asyncWebRequest.addErrorHandler(ex -> {
 			if (!this.errorHandlingInProgress) {
 				try {
@@ -456,16 +493,23 @@ public final class WebAsyncManager {
 			}
 		});
 
+		// 为请求对象添注册异步任务执行完成的处理器
 		this.asyncWebRequest.addCompletionHandler(()
 				-> interceptorChain.triggerAfterCompletion(this.asyncWebRequest, deferredResult));
 
+		// 并发处理之前的回调
 		interceptorChain.applyBeforeConcurrentHandling(this.asyncWebRequest, deferredResult);
+		// 开启Servlet异步，将Servlet主线程回收，以便接收其他请求，这是核心代码
 		startAsyncProcessing(processingContext);
 
 		try {
+			// 结果处理之前的回调
 			interceptorChain.applyPreProcess(this.asyncWebRequest, deferredResult);
+			// 设置结果处理器给 DeferredResult，这里会设置回调函数，也就是说 Tomcat 线程到这里就已经释放了
 			deferredResult.setResultHandler(result -> {
+				// 当结果异步处理之后会进入该方法
 				result = interceptorChain.applyPostProcess(this.asyncWebRequest, deferredResult, result);
+				// 结果响应，该方法会调用 StandardServletAsyncWebRequest 中的 dispatch() 方法进行处理
 				setConcurrentResultAndDispatch(result);
 			});
 		}
@@ -475,11 +519,14 @@ public final class WebAsyncManager {
 	}
 
 	private void startAsyncProcessing(Object[] processingContext) {
+		// 注意这里的加锁操作，锁对象是 WebAsyncManager，虽然每个 Request 对应一个 WebAsyncManager 对象，但是同一个 Request 会有多个线程访问 WebAsyncManager 对象
 		synchronized (WebAsyncManager.this) {
 			this.concurrentResult = RESULT_NONE;
 			this.concurrentResultContext = processingContext;
 			this.errorHandlingInProgress = false;
 		}
+		// 标记异步处理的开始，这里的 asyncWebRequest 其实是 StandardServletAsyncWebRequest
+		// 核心
 		this.asyncWebRequest.startAsync();
 
 		if (logger.isDebugEnabled()) {

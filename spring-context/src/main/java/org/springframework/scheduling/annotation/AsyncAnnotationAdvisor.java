@@ -95,6 +95,7 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	public AsyncAnnotationAdvisor(
 			@Nullable Supplier<Executor> executor, @Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
 
+		// 添加异步注解，默认为@Async和EJB 3.1规范下的@Asynchronous
 		Set<Class<? extends Annotation>> asyncAnnotationTypes = new LinkedHashSet<>(2);
 		asyncAnnotationTypes.add(Async.class);
 		try {
@@ -104,7 +105,9 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 		catch (ClassNotFoundException ex) {
 			// If EJB 3.1 API not present, simply ignore.
 		}
+		// 通知, 重点
 		this.advice = buildAdvice(executor, exceptionHandler);
+		// 切点
 		this.pointcut = buildPointcut(asyncAnnotationTypes);
 	}
 
@@ -150,6 +153,11 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	protected Advice buildAdvice(
 			@Nullable Supplier<Executor> executor, @Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
 
+		/**
+		 * 初始化了一个拦截器
+		 * AnnotationAsyncExecutionInterceptor 这个类很重要
+		 * 如果对AOP比较熟悉的，就知道里面它父类 AsyncExecutionInterceptor 有个 invoke 方法, 这是@Async的核心
+		 */
 		AnnotationAsyncExecutionInterceptor interceptor = new AnnotationAsyncExecutionInterceptor(null);
 		interceptor.configure(executor, exceptionHandler);
 		return interceptor;
@@ -163,8 +171,18 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 	protected Pointcut buildPointcut(Set<Class<? extends Annotation>> asyncAnnotationTypes) {
 		ComposablePointcut result = null;
 		for (Class<? extends Annotation> asyncAnnotationType : asyncAnnotationTypes) {
+			/**
+			 * Pointcut作为Spring AOP最顶级的抽象，主要负责对系统相应 JoinPoint 的捕获，
+			 * 如果把JoinPoint比做数据，那么Pointcut就是查询条件，一个Pointcut可以对应多个 JoinPoint
+			 * ClassFilter和MethodMatcher分别限定在不同级别上对于Joinpoint的匹配，ClassFilter是类级别，MethodMatcher是方法级别，
+			 * AnnotationMatchingPointcut实现了Pointcut
+			 */
+
+			// 类级别注解的捕获
 			Pointcut cpc = new AnnotationMatchingPointcut(asyncAnnotationType, true);
+			// 方法级别注解的捕获
 			Pointcut mpc = new AnnotationMatchingPointcut(null, asyncAnnotationType, true);
+			// 存在多个注解的情况下，会合并起来，union方法内部做了合并
 			if (result == null) {
 				result = new ComposablePointcut(cpc);
 			}

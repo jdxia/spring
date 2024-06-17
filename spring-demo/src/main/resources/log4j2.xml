@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+	<Appenders>
+		<Console name="ConsoleAppender" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+		</Console>
+	</Appenders>
+	<Loggers>
+<!--		level="debug"-->
+		<Root level="error">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Root>
+		<!-- level="trace" -->
+		<Logger name="org.springframework" level="error" additivity="false">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Logger>
+		<!-- Add more loggers here if needed -->
+	</Loggers>
+</Configuration>

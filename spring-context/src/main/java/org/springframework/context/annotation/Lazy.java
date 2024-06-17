@@ -60,7 +60,25 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Lazy {
+	/**
+	 * 指示一个bean是否应懒加载初始化。
+	 * 可直接或间接地用于带 org.springframework.stereotype.Component @Component 注解的类，
+	 * 或者用于带有 Bean @Bean 注解的方法。
+	 *
+	 * 如果此注解不在 @Component 或 @Bean 定义上，将会立即初始化。
+	 * 如果存在并且设置为 true，除非被另一个bean引用或从包围的 org.springframework.beans.factory.BeanFactory BeanFactory 中显式检索，
+	 * 否则 @Bean 或 @Component 不会初始化。如果存在并设置为 false，那么执行积极初始化单例的bean工厂将在启动时实例化bean。
+	 * 如果Lazy存在于 Configuration @Configuration 类上，表示该 @Configuration 中的所有 @Bean 方法都应懒加载。
+	 * 如果在一个带有 @Lazy 注解的 @Configuration 类的 @Bean 方法上 @Lazy 设置为false，则表示覆盖了“默认懒惰”行为，该bean应立即初始化。
+	 *
+	 * 除了其在组件初始化中的作用外，此注解也可用于带有 org.springframework.beans.factory.annotation.Autowired 或 javax.inject.Inject 的注入点：
+	 * 在这种情况下，它会导致为所有受影响的依赖关系创建一个懒解析代理，作为使用 org.springframework.beans.factory.ObjectFactory 或 javax.inject.Provider 的替代方法。
+	 */
 
+
+	/**
+	 * 是否应进行懒加载初始化。
+	 */
 	/**
 	 * Whether lazy initialization should occur.
 	 */

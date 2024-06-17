@@ -75,7 +75,10 @@ public abstract class DataSourceUtils {
 	 * @see #releaseConnection
 	 */
 	public static Connection getConnection(DataSource dataSource) throws CannotGetJdbcConnectionException {
+		// mybatis获取链接会从这里获取
+
 		try {
+			// 核心
 			return doGetConnection(dataSource);
 		}
 		catch (SQLException ex) {
@@ -101,24 +104,34 @@ public abstract class DataSourceUtils {
 	public static Connection doGetConnection(DataSource dataSource) throws SQLException {
 		Assert.notNull(dataSource, "No DataSource specified");
 
+		// 获取当前线程的数据库连接持有者。这里是事务中的连接时同一个db连接
 		ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource);
+		// 如果存在持有者 && (存在连接 || 和事务同步状态)
 		if (conHolder != null && (conHolder.hasConnection() || conHolder.isSynchronizedWithTransaction())) {
+			// 标记引用次数加一
 			conHolder.requested();
+			// 如果当前线程存在持有者，并且与事务同步了，如果仍然没有DB连接，那么说明当前线程就是不存在数据库连接，则获取连接绑定到持有者上。
 			if (!conHolder.hasConnection()) {
 				logger.debug("Fetching resumed JDBC Connection from DataSource");
+				// 持有者不存在连接则获取连接
 				conHolder.setConnection(fetchConnection(dataSource));
 			}
+			// 返回持有者所持有的连接
 			return conHolder.getConnection();
 		}
 		// Else we either got no holder or an empty thread-bound holder here.
 
+		// 到这里没返回，则说明 没有持有者 || 持有者没有同步绑定
 		logger.debug("Fetching JDBC Connection from DataSource");
+		// 获取到 DB 连接
 		Connection con = fetchConnection(dataSource);
 
+		// 如果当前线程的事务同步处于活动状态
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
 			try {
 				// Use same Connection for further JDBC actions within the transaction.
 				// Thread-bound object will get removed by synchronization at transaction completion.
+				// 如果持有者为null则创建一个，否则将刚才创建的DB连接赋值给持有者
 				ConnectionHolder holderToUse = conHolder;
 				if (holderToUse == null) {
 					holderToUse = new ConnectionHolder(con);
@@ -126,7 +139,14 @@ public abstract class DataSourceUtils {
 				else {
 					holderToUse.setConnection(con);
 				}
+				/**
+				 * 记录数据库连接： 引用次数加1
+				 *
+				 * 由于一个事务中存在多个sql 执行，每个sql 执行前都会获取一次DB 连接，所以这里使用 holderToUse.requested();
+				 * 来记录当前事务中的数据库连接引用的次数。执行完毕后将会将引用次数减一。在最后的sql 执行结束后会将引用次数减一。
+				 */
 				holderToUse.requested();
+				// 设置事务和持有者同步
 				TransactionSynchronizationManager.registerSynchronization(
 						new ConnectionSynchronization(holderToUse, dataSource));
 				holderToUse.setSynchronizedWithTransaction(true);
@@ -172,7 +192,7 @@ public abstract class DataSourceUtils {
 	 * @see Connection#setTransactionIsolation
 	 * @see Connection#setReadOnly
 	 */
-	@Nullable
+	@Nullable  	// 把definition和connection进行一些准备工作~
 	public static Integer prepareConnectionForTransaction(Connection con, @Nullable TransactionDefinition definition)
 			throws SQLException {
 
@@ -180,6 +200,7 @@ public abstract class DataSourceUtils {
 
 		boolean debugEnabled = logger.isDebugEnabled();
 		// Set read-only flag.
+		// 设置数据量连接为 read-only
 		if (definition != null && definition.isReadOnly()) {
 			try {
 				if (debugEnabled) {
@@ -202,6 +223,7 @@ public abstract class DataSourceUtils {
 		}
 
 		// Apply specific isolation level, if any.
+		// 设置数据库的隔离级别
 		Integer previousIsolationLevel = null;
 		if (definition != null && definition.getIsolationLevel() != TransactionDefinition.ISOLATION_DEFAULT) {
 			if (debugEnabled) {
@@ -299,6 +321,7 @@ public abstract class DataSourceUtils {
 	 * (may be {@code null})
 	 * @return whether the Connection is transactional
 	 */
+	// 该JDBC Connection 是否是当前事务内的链接~
 	public static boolean isConnectionTransactional(Connection con, @Nullable DataSource dataSource) {
 		if (dataSource == null) {
 			return false;
@@ -315,6 +338,7 @@ public abstract class DataSourceUtils {
 	 * @throws SQLException if thrown by JDBC methods
 	 * @see java.sql.Statement#setQueryTimeout
 	 */
+	// Statement 给他设置超时时间  不传timeout表示不超时
 	public static void applyTransactionTimeout(Statement stmt, @Nullable DataSource dataSource) throws SQLException {
 		applyTimeout(stmt, dataSource, -1);
 	}
@@ -353,6 +377,7 @@ public abstract class DataSourceUtils {
 	 * (may be {@code null})
 	 * @see #getConnection
 	 */
+	// 此处可能是归还给连接池，也有可能是close~（和连接池参数有关）
 	public static void releaseConnection(@Nullable Connection con, @Nullable DataSource dataSource) {
 		try {
 			doReleaseConnection(con, dataSource);
@@ -377,10 +402,18 @@ public abstract class DataSourceUtils {
 	 * @see #doGetConnection
 	 */
 	public static void doReleaseConnection(@Nullable Connection con, @Nullable DataSource dataSource) throws SQLException {
+		/**
+		 * 数据库的连接释放并不是直接调用了 Connection 的API 中的close 方法。
+		 * 考虑到存在事务的情况，如果当前线程存在事务，那么说明在当前线程中存在共用数据库连接
+		 * （存在事务则说明不止一个sql 语句被执行，则会共用同一个数据库连接, 所以如果当前Sql执行完毕，不能立即关闭数据库连接，而是将引用次数减一），
+		 * 这种情况下直接使用 ConnectionHolder 中的released 方法进行连接数减一，而不是真正的释放连接。
+		 */
+
 		if (con == null) {
 			return;
 		}
 		if (dataSource != null) {
+			// 当前线程存在事务的情况下说明存在共用数据库连接直接使用ConnectionHolder中的released方法进行连接数减一而不是真正的释放连接
 			ConnectionHolder conHolder = (ConnectionHolder) TransactionSynchronizationManager.getResource(dataSource);
 			if (conHolder != null && connectionEquals(conHolder, con)) {
 				// It's the transactional Connection: Don't close it.
@@ -434,6 +467,7 @@ public abstract class DataSourceUtils {
 	 * @return the innermost target Connection, or the passed-in one if no proxy
 	 * @see ConnectionProxy#getTargetConnection()
 	 */
+	// 如果链接是代理，会拿到最底层的connection
 	public static Connection getTargetConnection(Connection con) {
 		Connection conToUse = con;
 		while (conToUse instanceof ConnectionProxy) {

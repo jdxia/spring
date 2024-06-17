@@ -33,6 +33,7 @@ import org.springframework.lang.Nullable;
  */
 public class AsyncConfigurationSelector extends AdviceModeImportSelector<EnableAsync> {
 
+	// 这类 我也不知道在哪？是用于支持AspectJ这种静态代理Mode的,忽略吧~~~~
 	private static final String ASYNC_EXECUTION_ASPECT_CONFIGURATION_CLASS_NAME =
 			"org.springframework.scheduling.aspectj.AspectJAsyncConfiguration";
 
@@ -45,7 +46,9 @@ public class AsyncConfigurationSelector extends AdviceModeImportSelector<EnableA
 	@Override
 	@Nullable
 	public String[] selectImports(AdviceMode adviceMode) {
+		// 这里AdviceMode 进行不同的处理，从而向Spring容器注入了不同的Bean~~~
 		switch (adviceMode) {
+			// 默认使用Spring AOP代理
 			case PROXY:
 				return new String[] {ProxyAsyncConfiguration.class.getName()};
 			case ASPECTJ:

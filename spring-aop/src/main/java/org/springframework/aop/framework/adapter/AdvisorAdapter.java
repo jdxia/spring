@@ -45,7 +45,7 @@ public interface AdvisorAdapter {
 	 * @see #getInterceptor(org.springframework.aop.Advisor)
 	 * @see org.springframework.aop.BeforeAdvice
 	 */
-	boolean supportsAdvice(Advice advice);
+	boolean supportsAdvice(Advice advice);   // 这个适配器是否支持这个Advice
 
 	/**
 	 * Return an AOP Alliance MethodInterceptor exposing the behavior of
@@ -58,6 +58,6 @@ public interface AdvisorAdapter {
 	 * no need to cache instances for efficiency, as the AOP framework
 	 * caches advice chains.
 	 */
-	MethodInterceptor getInterceptor(Advisor advisor);
+	MethodInterceptor getInterceptor(Advisor advisor);   // 将一个Advisor转换成MethodInterceptor
 
 }

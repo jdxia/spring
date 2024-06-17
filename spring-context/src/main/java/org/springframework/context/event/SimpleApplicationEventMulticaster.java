@@ -127,15 +127,21 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 		multicastEvent(event, resolveDefaultEventType(event));
 	}
 
-	@Override
+	@Override // 处理事件
 	public void multicastEvent(final ApplicationEvent event, @Nullable ResolvableType eventType) {
 		ResolvableType type = (eventType != null ? eventType : resolveDefaultEventType(event));
+
+		// 支持异步执行监听器, 默认是null
 		Executor executor = getTaskExecutor();
+		// 此getApplicationListeners(event, type)方法就是拿到广播器里面的所有Listener
+		// 获取符合要求的事件监听器，进行遍历
 		for (ApplicationListener<?> listener : getApplicationListeners(event, type)) {
-			if (executor != null) {
+			if (executor != null) {  // 异步执行
+				// 重点 invokeListener
 				executor.execute(() -> invokeListener(listener, event));
 			}
 			else {
+				//同步发送事件
 				invokeListener(listener, event);
 			}
 		}
@@ -152,26 +158,37 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 	 * @since 4.1
 	 */
 	protected void invokeListener(ApplicationListener<?> listener, ApplicationEvent event) {
+		// 先判断是否有设置错误处理程序，如果有则需要用错误处理程序来处理事件监听器中发生的异常
+		// 获取此多播器的当前错误处理程序
 		ErrorHandler errorHandler = getErrorHandler();
+		// 如果errorHandler不为null
 		if (errorHandler != null) {
 			try {
+				// 回调listener的onApplicationEvent方法，传入event
 				doInvokeListener(listener, event);
 			}
 			catch (Throwable err) {
+				// 交给errorHandler接收处理err
 				errorHandler.handleError(err);
 			}
 		}
 		else {
+			// 参数传入的是listener,终于开始调用了！！！！
+			// 回调listener的onApplicationEvent方法，传入event
 			doInvokeListener(listener, event);
 		}
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
+	// 回调listener的onApplicationEvent方法，传入 event
 	private void doInvokeListener(ApplicationListener listener, ApplicationEvent event) {
 		try {
+			// 调用Listener中仅有的onApplicationEvent()方法！！！
+			// //回调listener的onApplicationEvent方法，传入 event:contextrefreshListener:onapplicaitonEvent:FrameworkServlet.this.onApplicationEvent()
 			listener.onApplicationEvent(event);
 		}
 		catch (ClassCastException ex) {
+			//获取异常信息
 			String msg = ex.getMessage();
 			if (msg == null || matchesClassCastMessage(msg, event.getClass())) {
 				// Possibly a lambda-defined listener which we could not resolve the generic event type for
