@@ -41,9 +41,9 @@ public class App {
 
 //		aopTest();
 
-		eventTest();
+//		eventTest();
 
-//		transactionTest();
+		transactionTest();
 
 //		enhancerTest();
 //		proxyFactoryTestAdvice();
@@ -114,7 +114,7 @@ public class App {
 	private static void transactionTest() {
 		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
 		MyUserService myUserService = ac.getBean(MyUserService.class);
-		myUserService.test1();
+		myUserService.test3();
 	}
 
 	private static void xmlTest() {

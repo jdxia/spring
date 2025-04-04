@@ -44,7 +44,7 @@ public class AppConfig {
 	}
 
 	@Bean
-	public PlatformTransactionManager transactionManager() {
+	public DataSourceTransactionManager transactionManager() {
 		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager();
 		/**
 		 * 设置数据源, 数据源格式很多, 有 DriverManagerDataSource 和 AbstractRoutingDataSource 或者 HikariDataSource

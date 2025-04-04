@@ -1397,6 +1397,10 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 		if (maxRows != -1) {
 			stmt.setMaxRows(maxRows);
 		}
+
+		/**
+		 * 会调用 DataSourceUtils#applyTimeout() 方法, 设置spring事务的超时时间
+		 */
 		DataSourceUtils.applyTimeout(stmt, getDataSource(), getQueryTimeout());
 	}
 

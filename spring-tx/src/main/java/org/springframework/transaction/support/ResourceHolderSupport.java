@@ -123,10 +123,19 @@ public abstract class ResourceHolderSupport implements ResourceHolder {
 	 * Rounds up eagerly, e.g. 9.00001 still to 10.
 	 * @return number of seconds until expiration
 	 * @throws TransactionTimedOutException if the deadline has already been reached
+	 *
+	 * mybatis-spring 包里面有个 spring事务管理器, 这个事务管理器不是spring的, 是mybatis-spring写的
+	 * SpringManagedTransaction 里面会调用到这里 org.mybatis.spring.transaction.SpringManagedTransaction#getTimeout
+	 * 然后上面的是被mybatis 调用 org.apache.ibatis.executor.SimpleExecutor#prepareStatement(org.apache.ibatis.executor.statement.StatementHandler, org.apache.ibatis.logging.Log)
 	 */
 	public int getTimeToLiveInSeconds() {
+		// 这里 getTimeToLiveInMillis 就会检查和抛异常了
 		double diff = ((double) getTimeToLiveInMillis()) / 1000;
+
+		// 向上取整，例如 9.00001 会取整到 10
 		int secs = (int) Math.ceil(diff);
+
+		// 这边又检查了一次
 		checkTransactionTimeout(secs <= 0);
 		return secs;
 	}
