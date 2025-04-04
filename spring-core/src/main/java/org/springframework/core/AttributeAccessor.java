@@ -25,6 +25,7 @@ import org.springframework.lang.Nullable;
  * @author Rob Harrop
  * @since 2.0
  */
+// 为BeanDefinition 额外提供一些类的信息，比如一些注解等
 public interface AttributeAccessor {
 
 	/**

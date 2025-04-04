@@ -37,6 +37,8 @@ import org.springframework.lang.Nullable;
  * @see ConfigurableListableBeanFactory#getBeanDefinition
  * @see org.springframework.beans.factory.support.RootBeanDefinition
  * @see org.springframework.beans.factory.support.ChildBeanDefinition
+ *
+ * spring当中用来描述bean的一个接口
  */
 public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 
@@ -46,6 +48,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * <p>Note that extended bean factories might support further scopes.
 	 * @see #setScope
 	 * @see ConfigurableBeanFactory#SCOPE_SINGLETON
+	 *
+	 * 标准单例作用域的作用域标识符：“singleton”
 	 */
 	String SCOPE_SINGLETON = ConfigurableBeanFactory.SCOPE_SINGLETON;
 
@@ -54,6 +58,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * <p>Note that extended bean factories might support further scopes.
 	 * @see #setScope
 	 * @see ConfigurableBeanFactory#SCOPE_PROTOTYPE
+	 *
+	 * 原型
 	 */
 	String SCOPE_PROTOTYPE = ConfigurableBeanFactory.SCOPE_PROTOTYPE;
 
@@ -72,6 +78,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * of when looking more closely at a particular
 	 * {@link org.springframework.beans.factory.parsing.ComponentDefinition},
 	 * but not when looking at the overall configuration of an application.
+	 *
+	 * ROLE_SUPPORT =1实际上就是说，我这个Bean是用户的，是从配置文件中过来的
 	 */
 	int ROLE_SUPPORT = 1;
 
@@ -80,6 +88,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * entirely background role and has no relevance to the end-user. This hint is
 	 * used when registering beans that are completely part of the internal workings
 	 * of a {@link org.springframework.beans.factory.parsing.ComponentDefinition}.
+	 *
+	 * 就是我这Bean是Spring自己的，和你用户没有一毛钱关系
 	 */
 	int ROLE_INFRASTRUCTURE = 2;
 
@@ -89,6 +99,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	// 设置父Bean
 	/**
 	 * Set the name of the parent definition of this bean definition, if any.
+	 *
+	 * 设置一个BeanDefinition的子类，则该BeanDefinition就继承设置的子类的一些设置比如属性值，单例原型。该BeanDefinition可以不设置这些信息 保持和设置类一致。
 	 */
 	void setParentName(@Nullable String parentName);
 
@@ -141,11 +153,12 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	@Nullable
 	String getScope();
 
-	// 设置是否懒加载
 	/**
 	 * Set whether this bean should be lazily initialized.
 	 * <p>If {@code false}, the bean will get instantiated on startup by bean
 	 * factories that perform eager initialization of singletons.
+	 *
+	 * 设置是否懒加载
 	 */
 	void setLazyInit(boolean lazyInit);
 
@@ -309,6 +322,13 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	 * @see #ROLE_SUPPORT
 	 * @see #ROLE_INFRASTRUCTURE
 	 */
+	/**
+	 * 三个角色类型
+	 * ROLE_APPLICATION 表示这个 Bean 是用户自己定义的 Bean
+	 * ROLE_SUPPORT 表示这个 Bean 是某些复杂配置的支撑部分
+	 * ROLE_INFRASTRUCTURE 表示这是一个 Spring 内部的 Bean
+	 * 通过 setRole/getRole 可以修改
+	 */
 	int getRole();
 
 	/**
@@ -363,6 +383,8 @@ public interface BeanDefinition extends AttributeAccessor, BeanMetadataElement {
 	/**
 	 * Return a description of the resource that this bean definition
 	 * came from (for the purpose of showing context in case of errors).
+	 *
+	 * 资源描述 还是描述信息 类似订单的商家备注
 	 */
 	@Nullable
 	String getResourceDescription();

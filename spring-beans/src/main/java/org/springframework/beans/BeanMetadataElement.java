@@ -25,6 +25,7 @@ import org.springframework.lang.Nullable;
  * @author Juergen Hoeller
  * @since 2.0
  */
+// java文件的原始路径
 public interface BeanMetadataElement {
 
 	/**

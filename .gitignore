@@ -27,6 +27,8 @@ buildSrc/build
 /src/asciidoc/build
 target/
 
+.xcodemap
+
 # Eclipse artifacts, including WTP generated manifests
 .classpath
 .project

@@ -1,11 +1,15 @@
 package org.studyspring.demo;
 
 import org.aopalliance.aop.Advice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.PointcutAdvisor;
 import org.springframework.aop.framework.*;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.cglib.proxy.*;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -18,13 +22,18 @@ import org.studyspring.demo.bean.aop.MyAroundAdvice;
 import org.studyspring.demo.bean.event.genericEvent.RegisterService;
 import org.studyspring.demo.bean.event.normalEvent.TestEventListener;
 import org.studyspring.demo.bean.transaction.MyUserService;
+import org.studyspring.demo.bean.xml.User;
 import org.studyspring.demo.config.AppConfig;
 import org.studyspring.demo.config.AsyncConfig;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+
+
 public class App {
 
+
+	private static final Logger log = LoggerFactory.getLogger(App.class);
 
 	// 源码核心: AbstractApplicationContext类refresh⽅法
 	public static void main(String[] args) throws Exception {
@@ -51,7 +60,8 @@ public class App {
 		 * {@link JdkDynamicAopProxy#invoke(Object, Method, Object[])} 里面的 oldProxy = AopContext.setCurrentProxy(proxy);
 		 * 也有还原的
 		 */
-//		 AopContext.currentProxy();
+		 AopContext.currentProxy();
+
 
 		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
 		A aBean = ac.getBean(A.class);
@@ -60,6 +70,20 @@ public class App {
 
 	private static void eventTest() throws Exception {
 		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
+
+//		DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ac.getBeanFactory();
+//		beanFactory.registerBeanDefinition();
+
+
+//		SimpleApplicationEventMulticaster simpleApplicationEventMulticaster = ac.getBean(AbstractApplicationContext.APPLICATION_EVENT_MULTICASTER_BEAN_NAME,
+//				SimpleApplicationEventMulticaster.class);
+//		simpleApplicationEventMulticaster.setErrorHandler(e -> {
+//			System.out.println("异常原因: " + e.getMessage());
+//			log.info("发生异常", e);
+//
+//		});
+
+		ac.getBean(A.class).test2();
 
 
 		RegisterService registerService = ac.getBean(RegisterService.class);

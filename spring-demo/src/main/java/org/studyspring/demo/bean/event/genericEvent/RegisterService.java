@@ -3,6 +3,8 @@ package org.studyspring.demo.bean.event.genericEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.studyspring.demo.bean.event.normalEvent.TestEvent;
 import org.studyspring.demo.bean.event.normalEvent.UserData;
 
@@ -31,7 +33,7 @@ public class RegisterService implements ApplicationEventPublisherAware {
 		publisher.publishEvent(testEvent);
 
 
-		System.out.println("======");
+		System.out.println("======> publisher end");
 	}
 
 	@Override

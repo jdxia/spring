@@ -207,6 +207,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		this.includeFilters.add(new AnnotationTypeFilter(Component.class));
 		ClassLoader cl = ClassPathScanningCandidateComponentProvider.class.getClassLoader();
 		try {
+			// 默认扫描包含@ManagedBean注解的类
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("javax.annotation.ManagedBean", cl)), false));
 			logger.trace("JSR-250 'javax.annotation.ManagedBean' found and supported for component scanning");
@@ -215,6 +216,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			// JSR-250 1.1 API (as included in Java EE 6) not available - simply skip.
 		}
 		try {
+			// 默认扫描包含@Named注解的类
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("javax.inject.Named", cl)), false));
 			logger.trace("JSR-330 'javax.inject.Named' annotation found and supported for component scanning");
@@ -322,7 +324,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
 		}
 		else {
-			// 扫描某个包路径，并得到BeanDefinition的Set集合, 重要
+			// 扫描某个包路径，并得到BeanDefinition的Set集合, 很重要
 			return scanCandidateComponents(basePackage);
 		}
 	}
@@ -432,7 +434,8 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			// 举个例子：com.example --> classpath*:com/example/**/*.class
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
-			//根据路径获取资源对象, 能找到很多class文件, 有多少class文件就有多少个资源对象
+					
+			//根据路径获取资源对象, 能找到很多class文件, 有多少class文件就有多少个资源对象, 这时候还没加载
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
@@ -459,6 +462,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 						 * 查看配置类是否有@Conditional一系列的注解，然后是否满足注册Bean的条件
 						 * spring默认会加一个Component注解对应的includeFilters, 类有没有@Component注解就符合这个判断才能进去
 						 * 如果整合mybatis, 那mapper接口不适合加@Component注解, 所以要添加一个扫描器, 所有类型都返回true
+						 * 
 						 */
 						if (isCandidateComponent(metadataReader)) {
 							// 构造一个 BeanDefinition, 并且是 ScannedGenericBeanDefinition 类型的, 表示是扫描生成的BeanDefinition
@@ -466,6 +470,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 							sbd.setSource(resource);
 
 							// 如果是整合mybatis, 要写个扫描器继承spring的, 把这个方法重写了, 只扫描接口
+							// 不能是接口或抽象类，如果是抽象类，但是有@Lookup注解的方法则通过
 							if (isCandidateComponent(sbd)) {
 								if (debugEnabled) {
 									logger.debug("Identified candidate component class: " + resource);

@@ -225,6 +225,7 @@ class ConfigurationClassParser {
 	}
 
 	protected final void parse(AnnotationMetadata metadata, String beanName) throws IOException {
+		// 往下
 		processConfigurationClass(new ConfigurationClass(metadata, beanName), DEFAULT_EXCLUSION_FILTER);
 	}
 
@@ -368,7 +369,7 @@ class ConfigurationClassParser {
 
 		// Process any @Import annotations
 		/**
-		 * 处理@Import注解
+		 * 处理@Import注解, 如果配置类上面有 这个注解那先处理这个注解
 		 * getImports(sourceClass) 会拿到 @Import 导入的类
 		 * 如果导入的是普通类, 那就会把它当做配置类来解析
 		 * 如果导入的是普通的ImportSelector, 那会将返回的类再次调用 processImports 方法进行解析
@@ -667,7 +668,7 @@ class ConfigurationClassParser {
 						}
 						// 如果import的是DeferredImportSelector，表示推迟导入, springboot的自动装配的类是 实现了 DeferredImportSelector 这个接口, 注意了
 						if (selector instanceof DeferredImportSelector) {
-							//如果是DeferredImportSelector，则用deferredImportSelectorHandler处理
+							// 如果是DeferredImportSelector，则用deferredImportSelectorHandler处理
 							// 只是负责DeferredImportSelector的收集，加入到deferredImportSelectors容器中
 							// 处理是在外面的 ConfigurationClassParser#parse 主要负责对所有的配置类进行解析，解析完成最后会完成DeferredImportSelector的调用
 							this.deferredImportSelectorHandler.handle(configClass, (DeferredImportSelector) selector);

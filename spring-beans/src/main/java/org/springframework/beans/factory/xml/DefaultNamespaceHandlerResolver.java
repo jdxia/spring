@@ -133,6 +133,8 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 				}
 				NamespaceHandler namespaceHandler = (NamespaceHandler) BeanUtils.instantiateClass(handlerClass);
 				namespaceHandler.init();
+
+				// 缓存 NamespaceHandler
 				handlerMappings.put(namespaceUri, namespaceHandler);
 				return namespaceHandler;
 			}

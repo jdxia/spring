@@ -296,7 +296,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 				}
 				// 使用了注解的类会走这个if
 				if (candidate instanceof AnnotatedBeanDefinition) {
-					// 处理一些常用的注解，比如@Lazy、@Primary
+					// 处理一些常用的注解，比如处理 @Lazy, @Primary, @DependsOn, @Role, @Description
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
 
@@ -311,6 +311,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 					beanDefinitions.add(definitionHolder);
 
 					// 注册beanDefinition
+					// 会看bean是否允许覆盖, 如果允许覆盖, 会看Role
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}

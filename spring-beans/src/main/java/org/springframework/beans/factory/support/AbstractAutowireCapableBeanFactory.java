@@ -572,6 +572,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeanCreationException {
 		// 这个方法非常的核心, 大部分 bean生命周期都在这!!!
 
+		// 注意下： Initialization 表示 初始化 （意思是对象还未生成） 。 Instantiation 表示 实例化 （意思是对象已经生成）
+
 		// Instantiate the bean.
 		//实例化bean
 		BeanWrapper instanceWrapper = null;
@@ -1687,8 +1689,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					 * 这里会处理 AutowiredAnnotationBeanPostProcessor 的postProcessMergedBeanDefinition方法, 会直接给对象的属性赋值
 					 * 	AutowiredAnnotationBeanPostProcessor 内部不会处理pvs, 直接返回了
 					 *
-					 * @Autowired 注解是被 AutowiredAnnotationBeanPostProcessor 后置处理器处理
-					 * @Resource 注解是被 CommonAnnotationBeanPostProcessor 这个后置处理器处理的
+					 * @Autowired @Value 注解是被 AutowiredAnnotationBeanPostProcessor 后置处理器处理
+					 * @Resource @PostConstruct、@PreDestroy 注解是被 CommonAnnotationBeanPostProcessor 这个后置处理器处理的
 					 *
 					 * 这边可以 利用 InstantiationAwareBeanPostProcessor 接口, 自己写个实现类,实现类里面处理 自己定义的注解 处理类似 @Autowire, @Resource
 					 * 注意下： Initialization 表示 初始化 （意思是对象还未生成） 。 Instantiation 表示 实例化 （意思是对象已经生成）

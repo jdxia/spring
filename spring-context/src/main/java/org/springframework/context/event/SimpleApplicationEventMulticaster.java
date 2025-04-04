@@ -161,7 +161,7 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 		// 先判断是否有设置错误处理程序，如果有则需要用错误处理程序来处理事件监听器中发生的异常
 		// 获取此多播器的当前错误处理程序
 		ErrorHandler errorHandler = getErrorHandler();
-		// 如果errorHandler不为null
+		// 如果errorHandler不为null, 会catch住所有的事件异常
 		if (errorHandler != null) {
 			try {
 				// 回调listener的onApplicationEvent方法，传入event

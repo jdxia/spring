@@ -53,6 +53,7 @@ public interface NamespaceHandler {
 	 * construction but before any custom elements are parsed.
 	 * @see NamespaceHandlerSupport#registerBeanDefinitionParser(String, BeanDefinitionParser)
 	 */
+	// 初始化
 	void init();
 
 	/**
@@ -69,6 +70,7 @@ public interface NamespaceHandler {
 	 * @param parserContext the object encapsulating the current state of the parsing process
 	 * @return the primary {@code BeanDefinition} (can be {@code null} as explained above)
 	 */
+	// 将标签解析为 BeanDefinition
 	@Nullable
 	BeanDefinition parse(Element element, ParserContext parserContext);
 
@@ -91,6 +93,7 @@ public interface NamespaceHandler {
 	 * A {@code null} value is strictly speaking invalid, but will be leniently
 	 * treated like the case where the original bean definition gets returned.
 	 */
+	// 对 BeanDefinition 再次处理，Spring 使用其解析默认命名空间下标签的非默认命名空间属性或子标签
 	@Nullable
 	BeanDefinitionHolder decorate(Node source, BeanDefinitionHolder definition, ParserContext parserContext);
 

@@ -7,6 +7,8 @@ import java.util.Objects;
 
 public class TestEvent extends ApplicationEvent {
 
+	private static final long serialVersionUID = -74214283543270188L;
+
 	private String msg;
 
 

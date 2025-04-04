@@ -9,6 +9,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.validation.annotation.Validated;
 
+import java.io.Serializable;
+
 @Component
 public class MyUserService{
 
@@ -59,12 +61,19 @@ public class MyUserService{
 				"VALUES ('李四', '1990-01-01', '男', '北京市朝阳区');\n");
 
 		// 事务提交完成之后才可以发
-//		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-//			@Override
-//			public void afterCommit() {
-//
-//			}
-//		});
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				System.out.println("afterCommit 1");
+			}
+		});
+
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				System.out.println("afterCommit 2");
+			}
+		});
 
 		System.out.println("事务执行sql完成, 准备commit");
 	}
@@ -77,7 +86,9 @@ public class MyUserService{
 
 }
 
-class TestException extends RuntimeException {
+class TestException extends RuntimeException implements Serializable {
+	private static final long serialVersionUID = -74214283543270188L;
+
 	public TestException(String message) {
 		super(message);
 	}

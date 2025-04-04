@@ -93,6 +93,8 @@ public class SimpleCommandLinePropertySource extends CommandLinePropertySource<C
 	 * @see CommandLinePropertySource#CommandLinePropertySource(Object)
 	 */
 	public SimpleCommandLinePropertySource(String... args) {
+
+		// 重点是 parse
 		super(new SimpleCommandLineArgsParser().parse(args));
 	}
 

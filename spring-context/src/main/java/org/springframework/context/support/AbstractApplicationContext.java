@@ -643,7 +643,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				 *
 				 * BeanFactoryPostProcessor按类型又可以分为：
 				 * 1. 普通BeanFactoryPostProcessor
-				 * 2. BeanDefinitionRegistryPostProcessor
+				 * 2. BeanDefinitionRegistryPostProcessor (重要的)
 				 *
 				 * 执行顺序顺序如下：
 				 * 1. 执行手动添加的BeanDefinitionRegistryPostProcessor                       	的postProcessBeanDefinitionRegistry()方法

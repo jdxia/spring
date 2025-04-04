@@ -43,14 +43,14 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * Parser for the @{@link ComponentScan} annotation.
+ *@{ @link Componentscan}注释的解析器。
  *
- * @author Chris Beams
- * @author Juergen Hoeller
- * @author Sam Brannen
+ * @Author Chris Beams
+ * @Author Juergen Hoeller
+ * @Author Sam Brannen
  * @since 3.1
- * @see ClassPathBeanDefinitionScanner#scan(String...)
- * @see ComponentScanBeanDefinitionParser
+ * @See classPathBeanDefinitionScanner＃扫描（字符串...）
+ * @See componentsCanbeanDefinitionParser
  */
 class ComponentScanAnnotationParser {
 
@@ -73,23 +73,27 @@ class ComponentScanAnnotationParser {
 	}
 
 
-	public Set<BeanDefinitionHolder> parse(AnnotationAttributes componentScan, final String declaringClass) {
-		// 创建一个扫描器
+	// 解析一个@component scan注解
+	public Set<BeanDefinitionHolder> parse(AnnotationAttributes componentScan, final String declaringClass) { 
+		// Create a scanner with includeFilters
 		ClassPathBeanDefinitionScanner scanner = new ClassPathBeanDefinitionScanner(this.registry,
 				componentScan.getBoolean("useDefaultFilters"), this.environment, this.resourceLoader);
 
 		Class<? extends BeanNameGenerator> generatorClass = componentScan.getClass("nameGenerator");
+
 		/**
-		 * @ComponentScan注解可以配置命名策略（nameGenerator）
-		 * 默认情况下为true，如果为false，命名策略用的是你在配置类上配置的
-		 * BeanUtils.instantiateClass 此处会对命令策略的类进行初始化
+		 *@ComponentScan 注解可以配置命名策略（nameGenerator）
+		 *默认情况下为true，如果为false，命名策略用的是你在配置类上配置的
+		 *BeanUtils.instantiateClass 此处会对命令策略的类进行初始化
 		 */
 		boolean useInheritedGenerator = (BeanNameGenerator.class == generatorClass);
 		scanner.setBeanNameGenerator(useInheritedGenerator ? this.beanNameGenerator :
 				BeanUtils.instantiateClass(generatorClass));
 
 		ScopedProxyMode scopedProxyMode = componentScan.getEnum("scopedProxy");
+		//如果不是默认的
 		if (scopedProxyMode != ScopedProxyMode.DEFAULT) {
+			// 就把设置的放进去
 			scanner.setScopedProxyMode(scopedProxyMode);
 		}
 		else {
@@ -99,11 +103,15 @@ class ComponentScanAnnotationParser {
 
 		scanner.setResourcePattern(componentScan.getString("resourcePattern"));
 
+		// 获取配置的includeFilters
 		for (AnnotationAttributes filter : componentScan.getAnnotationArray("includeFilters")) {
 			for (TypeFilter typeFilter : typeFiltersFor(filter)) {
+				// 设置进去
 				scanner.addIncludeFilter(typeFilter);
 			}
 		}
+
+		// 获取设置的excludeFilters
 		for (AnnotationAttributes filter : componentScan.getAnnotationArray("excludeFilters")) {
 			for (TypeFilter typeFilter : typeFiltersFor(filter)) {
 				scanner.addExcludeFilter(typeFilter);
@@ -122,9 +130,13 @@ class ComponentScanAnnotationParser {
 					ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS);
 			Collections.addAll(basePackages, tokenized);
 		}
+
+		// 获取配置类所在的包路径作为扫描路径
 		for (Class<?> clazz : componentScan.getClassArray("basePackageClasses")) {
 			basePackages.add(ClassUtils.getPackageName(clazz));
 		}
+
+		// 如果basePackages为空，则使用配置类所在的包路径作为扫描路径
 		if (basePackages.isEmpty()) {
 			basePackages.add(ClassUtils.getPackageName(declaringClass));
 		}

@@ -31,6 +31,9 @@
 	<!--	<bean name="myBeanFactoryPostProcessor" class="org.studyspring.demo.config.MyBeanFactoryPostProcessor"/>-->
 	<!--	<bean name="myBeanPostProcessor" class="org.studyspring.demo.config.MyBeanPostProcessor"/>-->
 
+	<!--
+		context 标签就代表了一个命名空间,这个标签是可以扩展的
+	-->
 	<!-- 开启组件扫描 -->
 	<context:component-scan base-package="org.studyspring.**"/>
 

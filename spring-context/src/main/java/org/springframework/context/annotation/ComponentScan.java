@@ -64,6 +64,7 @@ public @interface ComponentScan {
 	 * are needed &mdash; for example, {@code @ComponentScan("org.my.pkg")}
 	 * instead of {@code @ComponentScan(basePackages = "org.my.pkg")}.
 	 */
+	// 指定扫描包路径的位置,可以是单个路径或路径数组
 	@AliasFor("basePackages")
 	String[] value() default {};
 
@@ -74,6 +75,7 @@ public @interface ComponentScan {
 	 * <p>Use {@link #basePackageClasses} for a type-safe alternative to
 	 * String-based package names.
 	 */
+	// 指定扫描包路径的位置,可以是单个路径或路径数组
 	@AliasFor("value")
 	String[] basePackages() default {};
 
@@ -83,6 +85,7 @@ public @interface ComponentScan {
 	 * <p>Consider creating a special no-op marker class or interface in each package
 	 * that serves no purpose other than being referenced by this attribute.
 	 */
+	// 指定具体的扫描的类
 	Class<?>[] basePackageClasses() default {};
 
 	/**
@@ -119,12 +122,14 @@ public @interface ComponentScan {
 	 * <p>Consider use of {@link #includeFilters} and {@link #excludeFilters}
 	 * for a more flexible approach.
 	 */
+	// 指定符合组件检测条件的类文件, 默认是包扫描下的"**/*.class"
 	String resourcePattern() default ClassPathScanningCandidateComponentProvider.DEFAULT_RESOURCE_PATTERN;
 
 	/**
 	 * Indicates whether automatic detection of classes annotated with {@code @Component}
 	 * {@code @Repository}, {@code @Service}, or {@code @Controller} should be enabled.
 	 */
+	// 是否开启对标注了@Component, @Repository, @Service, @Controller注解的类进行检测。
 	boolean useDefaultFilters() default true;
 
 	/**
@@ -137,12 +142,14 @@ public @interface ComponentScan {
 	 * @see #resourcePattern()
 	 * @see #useDefaultFilters()
 	 */
+	// 包含的过滤条件
 	Filter[] includeFilters() default {};
 
 	/**
 	 * Specifies which types are not eligible for component scanning.
 	 * @see #resourcePattern
 	 */
+	// 排除的过滤条件
 	Filter[] excludeFilters() default {};
 
 	/**

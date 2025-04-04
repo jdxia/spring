@@ -61,7 +61,7 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
 		// 如果不存在方法覆写，那就使用 java 反射进行实例化，否则使用 CGLIB,
-		// 判断当前BeanDefinition对应的beanClass是否存在@Lookup的方法
+		// 判断当前BeanDefinition对应的beanClass是否存在 @Lookup的方法
 		if (!bd.hasMethodOverrides()) {
 			Constructor<?> constructorToUse;
 			synchronized (bd.constructorArgumentLock) {
