@@ -616,8 +616,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// Invoke factory processors registered as beans in the context.
 				/**
 				 * 这里会完成扫描器的doScan扫描
-				 * 实例化并调⽤实现了BeanFactoryPostProcessor接⼝的Bean, 包括自定义以及内置的
-				 * 默认情况下只有一个实现了BeanFactoryPostProcessor 就是 ConfigurationClassPostProcessor(这个类很重要)
+				 * 实例化并调⽤实现了BeanFactoryPostProcessor 接⼝的Bean, 包括自定义以及内置的
+				 * 默认情况下只有一个实现了 BeanFactoryPostProcessor 就是 ConfigurationClassPostProcessor(这个类很重要)
 				 * 会先执行实现了 BeanDefinitionRegistryPostProcessor 接口(重点)的类，然后执行BeanFactoryPostProcessor的类, (mybatis和spring整合涉及到这个)
 				 * ConfigurationClassPostProcessor 类的postProcessorBeanFactory()方法进行了@Configuration类的解析，@ComponentScan的扫描，以及@Import注解的处理
 				 * 在解析完成了@configuration类时，会根据@0rder 或者 @PriorityOrdered注解对BeanPostProcessor和BeanFactoryPostProcessor进行排序并注册

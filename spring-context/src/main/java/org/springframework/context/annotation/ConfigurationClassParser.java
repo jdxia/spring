@@ -250,7 +250,8 @@ class ConfigurationClassParser {
 		/**
 		 * ConfigurationCondition 继承自Condition接口
 		 * ConfigurationPhase枚举类型的作用：ConfigurationPhase的作用就是根据条件来判断是否加载这个配置类
-		 * 	两个值：PARSE_CONFIGURATION 若条件不匹配就不加载此@Configuration
+		 * 两个值：
+		 * 	PARSE_CONFIGURATION 若条件不匹配就不加载此@Configuration
 		 * 	REGISTER_BEAN：无论如何，所有@Configurations都将被解析。
 		 */
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
@@ -309,11 +310,11 @@ class ConfigurationClassParser {
 	protected final SourceClass doProcessConfigurationClass(
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
-		// 解析@Configuration配置文件，然后加载进Bean的定义信息们
+		// 解析 @Configuration 配置文件，然后加载进Bean的定义信息们
 		// 这个方法非常的重要，可以看到它加载Bean定义信息的一个顺序~~~~
-		// 如果有@Compent注解
+		// 如果有 @Compent 注解
 		// 先去看看内部类  这个if判断是Spring5.x加上去的
-		// 因为@Import、@ImportResource这种属于lite模式的配置类，但是我们却不让他支持内部类了
+		// 因为 @Import、@ImportResource 这种属于lite模式的配置类，但是我们却不让他支持内部类了
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			// 基本逻辑：内部类也可以有多个（支持lite模式和full模式，也支持order排序）

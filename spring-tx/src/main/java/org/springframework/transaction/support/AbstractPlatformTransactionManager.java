@@ -348,9 +348,12 @@ public abstract class AbstractPlatformTransactionManager implements PlatformTran
 		// 如果没有设置TransactionDefinition，则使用默认的设置
 		TransactionDefinition def = (definition != null ? definition : TransactionDefinition.withDefaults());
 
-		// 得到一个新的DataSourceTransactionObject 对象
-		// 如果是一个事务 调用 另一个事务, 那这边 transaction的 ConnectionHolder 属性就会有值
-		Object transaction = doGetTransaction(); // org.springframework.jdbc.datasource.DataSourceTransactionManager.doGetTransaction
+		/**
+		 * 得到一个新的DataSourceTransactionObject 对象
+		 * 如果是一个事务 调用 另一个事务, 那这边 transaction的 ConnectionHolder 属性就会有值
+		 * {@link org.springframework.jdbc.datasource.DataSourceTransactionManager#doGetTransaction}
+		 */
+		Object transaction = doGetTransaction();
 		boolean debugEnabled = logger.isDebugEnabled();
 
 		// 判断是否存在事务, 里面的 代码 要结合 doGetTransaction 里面看, 也就是看 transaction的 ConnectionHolder 属性

@@ -47,6 +47,14 @@ public class MyUserService {
 	@Transactional(timeout = 3, noRollbackFor = TestException.class)
 	public void test1() {
 
+		/**
+		 * 这个方法检查当前线程是否已经激活了事务同步。事务同步是Spring框架用来在事务执行的不同阶段（如提交前、提交后、回滚等）注册回调的机制
+		 * TransactionSynchronizationManager.isSynchronizationActive()
+		 *
+		 * 这个方法检查是否有"实际的"事务处于活动状态。"实际的"事务意味着已经开始了一个数据库事务（或者类似的资源事务）。
+		 * 在某些情况下，事务同步可能是活跃的，但实际的数据库事务可能还没有开始（比如在事务传播行为为SUPPORTS且没有现有事务的情况下）
+		 * TransactionSynchronizationManager.isActualTransactionActive()
+		 */
 		System.out.println("当前是否开启事务: " + TransactionSynchronizationManager.isActualTransactionActive());
 		System.out.println("事务名: " + TransactionSynchronizationManager.getCurrentTransactionName());
 

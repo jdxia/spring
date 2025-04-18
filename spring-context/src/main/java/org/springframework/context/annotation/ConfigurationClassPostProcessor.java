@@ -349,7 +349,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 
 		// Parse each @Configuration class
-		// 这是重点：真正解析@Configuration类的，其实是ConfigurationClassParser 这个解析器来做的
+		// 这是重点：真正解析 @Configuration类的，其实是ConfigurationClassParser 这个解析器来做的
 		// parser 后面用于解析每一个配置类~~~~
 		ConfigurationClassParser parser = new ConfigurationClassParser(
 				this.metadataReaderFactory, this.problemReporter, this.environment,
