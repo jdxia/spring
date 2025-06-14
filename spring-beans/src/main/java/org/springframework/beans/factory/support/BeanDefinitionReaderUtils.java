@@ -161,8 +161,10 @@ public abstract class BeanDefinitionReaderUtils {
 
 		// Register bean definition under primary name.
 		String beanName = definitionHolder.getBeanName();
-		// 注册这个 Bean
-		// 会看bean是否允许覆盖, 如果允许覆盖, 会看Role
+		/**
+		 * 注册这个 Bean
+		 * 会看bean是否允许覆盖, 如果允许覆盖, 会看Role
+		 */
 		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 
 		// Register aliases for bean name, if any.

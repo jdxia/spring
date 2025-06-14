@@ -310,17 +310,21 @@ class ConfigurationClassParser {
 	protected final SourceClass doProcessConfigurationClass(
 			ConfigurationClass configClass, SourceClass sourceClass, Predicate<String> filter)
 			throws IOException {
-		// 解析 @Configuration 配置文件，然后加载进Bean的定义信息们
-		// 这个方法非常的重要，可以看到它加载Bean定义信息的一个顺序~~~~
-		// 如果有 @Compent 注解
-		// 先去看看内部类  这个if判断是Spring5.x加上去的
-		// 因为 @Import、@ImportResource 这种属于lite模式的配置类，但是我们却不让他支持内部类了
+		/**
+		 * 解析 @Configuration 配置文件，然后加载进Bean的定义信息们
+		 * 这个方法非常的重要，可以看到它加载Bean定义信息的一个顺序~~~~
+		 * 如果有 @Component 注解
+		 * 先去看看内部类  这个if判断是Spring5.x加上去的
+		 * 因为 @Import、@ImportResource 这种属于lite模式的配置类，但是我们却不让他支持内部类了
+		 */
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
-			// 基本逻辑：内部类也可以有多个（支持lite模式和full模式，也支持order排序）
-			// 若不是被import过的，那就顺便直接解析它（processConfigurationClass（））
-			// 另外：该内部class可以是private  也可以是static~~~(建议用private)
-			// 所以可以看到，把@Bean等定义在内部类里面，是有助于提升Bean的优先级的~~~~~
+			/**
+			 * 基本逻辑：内部类也可以有多个（支持lite模式和full模式，也支持order排序）
+			 * 若不是被import过的，那就顺便直接解析它（processConfigurationClass（））
+			 * 另外：该内部class可以是private  也可以是static~~~(建议用private)
+			 * 所以可以看到，把@Bean等定义在内部类里面，是有助于提升Bean的优先级的~~~~~
+			 */
 			processMemberClasses(configClass, sourceClass, filter);
 		}
 
@@ -340,16 +344,21 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
-		// 处理@ComponentScan
-		// 会进行扫描，得到的BeanDefinition会注册到Spring容器中，并且会检查是不是配置类并进行解析
+		/**
+		 * 处理@ComponentScan
+		 * 会进行扫描，得到的BeanDefinition会注册到Spring容器中，并且会检查是不是配置类并进行解析
+		 */
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
 			for (AnnotationAttributes componentScan : componentScans) {
 				// The config class is annotated with @ComponentScan -> perform the scan immediately
-				// 处理扫描，对于类的配置暂时不进行处理, 扫描会得到BeanDefinition, 重点
-				// parse是重点
+				/**
+				 * 处理扫描，对于类的配置暂时不进行处理, 扫描会得到BeanDefinition, 重点
+				 * parse是重点
+				 * 解析某一个 componentScan 注解
+				 */
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed

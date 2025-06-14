@@ -35,6 +35,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProce
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.core.OrderComparator;
 import org.springframework.core.Ordered;
 import org.springframework.core.PriorityOrdered;
@@ -389,6 +390,7 @@ final class PostProcessorRegistrationDelegate {
 			 * BeanFactoryPostProcessor 子类 BeanDefinitionRegistryPostProcessor接口 能注册beanDefinition (mybatis整合spring也利用了这个)
 			 *  如果是 BeanDefinitionRegistryPostProcessor 这个子类 这边就执行 postProcessBeanDefinitionRegistry
 			 *  registryProcessor 有个子类 ConfigurationClassPostProcessor
+			 *  {@link ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry(BeanDefinitionRegistry)}
 			 *
 			 *  它可以在Spring应用上下文前期先被实例化且回调相关接口方法，向Spring容器注册或移除BeanDefinition甚至可以在get出一个BeanDefinition后直接修改内部属性，让Bean变成你想要的模样
 			 */

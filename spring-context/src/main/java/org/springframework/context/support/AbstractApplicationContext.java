@@ -39,6 +39,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.support.ResourceEditorRegistrar;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -615,6 +616,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				// Invoke factory processors registered as beans in the context.
 				/**
+				 * <p>
 				 * 这里会完成扫描器的doScan扫描
 				 * 实例化并调⽤实现了BeanFactoryPostProcessor 接⼝的Bean, 包括自定义以及内置的
 				 * 默认情况下只有一个实现了 BeanFactoryPostProcessor 就是 ConfigurationClassPostProcessor(这个类很重要)
@@ -657,6 +659,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				 * 9. 执行扫描出来的BeanFactoryPostProcessor + 普通 				   		   	的postProcessBeanFactory()方法
 				 *
 				 * ConfigurationClassPostProcessor就会在第2步执行，会进行扫描
+				 *
+				 * </p>
 				 */
 				invokeBeanFactoryPostProcessors(beanFactory);
 
@@ -1412,6 +1416,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public <T> T getBean(Class<T> requiredType) throws BeansException {
 		assertBeanFactoryActive();
+		/**
+		 * {@link DefaultListableBeanFactory#getBean(Class)}
+		 */
 		return getBeanFactory().getBean(requiredType);
 	}
 

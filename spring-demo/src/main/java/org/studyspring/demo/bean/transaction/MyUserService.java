@@ -118,6 +118,14 @@ public class MyUserService {
 
 			TimeUnit.SECONDS.sleep(5);
 
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()  {
+
+				@Override
+				public void afterCommit() {
+					System.out.println(" =======> after commit");
+				}
+			});
+
 			System.out.println("事务执行sql完成, 准备commit");
 
 			transactionManager.commit(status);
