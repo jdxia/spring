@@ -138,14 +138,20 @@ class ConfigurationClassBeanDefinitionReader {
 			return;
 		}
 
+		// @Import(OrderService.class)，将OrderService注册为BeanDefinition
 		if (configClass.isImported()) {
 			registerBeanDefinitionForImportedConfigurationClass(configClass);
 		}
+
+		// 注册@Bean对应的BeanDefinition
 		for (BeanMethod beanMethod : configClass.getBeanMethods()) {
 			loadBeanDefinitionsForBeanMethod(beanMethod);
 		}
 
+		// 解析@ImportResource导入的文件，注册BeanDefinition
 		loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
+
+		// 执行ImportBeanDefinitionRegistrar注册BeanDefinition
 		loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
 	}
 
@@ -163,7 +169,9 @@ class ConfigurationClassBeanDefinitionReader {
 
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(configBeanDef, configBeanName);
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+
 		this.registry.registerBeanDefinition(definitionHolder.getBeanName(), definitionHolder.getBeanDefinition());
+
 		configClass.setBeanName(configBeanName);
 
 		if (logger.isTraceEnabled()) {
@@ -289,6 +297,7 @@ class ConfigurationClassBeanDefinitionReader {
 			logger.trace(String.format("Registering bean definition for @Bean method %s.%s()",
 					configClass.getMetadata().getClassName(), beanName));
 		}
+
 		this.registry.registerBeanDefinition(beanName, beanDefToRegister);
 	}
 

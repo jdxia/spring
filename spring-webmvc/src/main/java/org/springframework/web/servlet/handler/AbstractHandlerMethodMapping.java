@@ -219,6 +219,8 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 	 * @see #handlerMethodsInitialized
 	 */
 	protected void initHandlerMethods() {
+
+		// 找到容器里面的所有beanName
 		for (String beanName : getCandidateBeanNames()) {
 			if (!beanName.startsWith(SCOPED_TARGET_NAME_PREFIX)) {
 				processCandidateBean(beanName);
@@ -261,6 +263,8 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				logger.trace("Could not resolve type for bean '" + beanName + "'", ex);
 			}
 		}
+
+		// 判断bean是不是一个Handler Bean
 		if (beanType != null && isHandler(beanType)) {
 			detectHandlerMethods(beanName);
 		}
@@ -277,6 +281,7 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 
 		if (handlerType != null) {
 			Class<?> userType = ClassUtils.getUserClass(handlerType);
+
 			Map<Method, T> methods = MethodIntrospector.selectMethods(userType,
 					(MethodIntrospector.MetadataLookup<T>) method -> {
 						try {
@@ -640,6 +645,8 @@ public abstract class AbstractHandlerMethodMapping<T> extends AbstractHandlerMap
 				handlerMethod = handlerMethod.createWithValidateFlags();
 
 				Set<String> directPaths = AbstractHandlerMethodMapping.this.getDirectPaths(mapping);
+
+				// pathLookup是一个MultiValueMap，一个path可以对应多个mapping对象
 				for (String path : directPaths) {
 					this.pathLookup.add(path, mapping);
 				}

@@ -314,7 +314,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Nullable
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
+			// cacheKey其实就是beanName
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
+
 			if (this.earlyBeanReferences.remove(cacheKey) != bean) {
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
@@ -355,6 +357,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
+
+		// 为false表示当前bean不需要进行aop
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
@@ -364,6 +368,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		// Create proxy if we have advice.
+		// 匹配Advice和Advisor，然后创建代理对象
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
@@ -373,6 +378,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			return proxy;
 		}
 
+		// 没有匹配到Advice和Advisor，则不需要进行AOP
 		this.advisedBeans.put(cacheKey, Boolean.FALSE);
 		return bean;
 	}

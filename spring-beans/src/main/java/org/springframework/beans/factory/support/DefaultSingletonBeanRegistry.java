@@ -140,7 +140,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @param singletonObject the singleton object
 	 */
 	protected void addSingleton(String beanName, Object singletonObject) {
+
+		// 添加到单例池
 		Object oldObject = this.singletonObjects.putIfAbsent(beanName, singletonObject);
+
 		if (oldObject != null) {
 			throw new IllegalStateException("Could not register object [" + singletonObject +
 					"] under bean name '" + beanName + "': there is already object [" + oldObject + "] bound");
@@ -193,6 +196,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock.
 		Object singletonObject = this.singletonObjects.get(beanName);
+
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			singletonObject = this.earlySingletonObjects.get(beanName);
 			if (singletonObject == null && allowEarlyReference) {
@@ -206,6 +210,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
 								singletonObject = singletonFactory.getObject();
@@ -279,13 +284,18 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+
+				// 通过singletonsCurrentlyInCreation这个set来记录当前bean正在创建
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (locked && this.suppressedExceptions == null);
 				if (recordSuppressedExceptions) {
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
+
+				// 这里会触发创建，会执行外面传进来的lambad表达式
 				try {
+					// 回调，执行createBean()
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -311,6 +321,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					}
 					afterSingletonCreation(beanName);
 				}
+
+				// 添加到单例池
 				if (newSingleton) {
 					addSingleton(beanName, singletonObject);
 				}
@@ -479,6 +491,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	public void registerDependentBean(String beanName, String dependentBeanName) {
 		String canonicalName = canonicalName(beanName);
 
+		// dependentBeanName依赖了beanName，也就是dependentBeanName依赖了canonicalName
+
+		// dependentBeanMap的key是canonicalName，value是一个Set<dependentBeanName>
+		// 表示canonicalName被哪些dependentBeanName依赖了
 		synchronized (this.dependentBeanMap) {
 			Set<String> dependentBeans =
 					this.dependentBeanMap.computeIfAbsent(canonicalName, k -> new LinkedHashSet<>(8));
@@ -487,6 +503,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 			}
 		}
 
+		// 表示dependentBeanName依赖了哪些canonicalName
 		synchronized (this.dependenciesForBeanMap) {
 			Set<String> dependenciesForBean =
 					this.dependenciesForBeanMap.computeIfAbsent(dependentBeanName, k -> new LinkedHashSet<>(8));
@@ -580,6 +597,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		synchronized (this.disposableBeans) {
 			disposableBeanNames = StringUtils.toStringArray(this.disposableBeans.keySet());
 		}
+
+		// 调用销毁的逻辑
 		for (int i = disposableBeanNames.length - 1; i >= 0; i--) {
 			destroySingleton(disposableBeanNames[i]);
 		}
@@ -651,6 +670,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		Set<String> dependentBeanNames;
 		synchronized (this.dependentBeanMap) {
 			// Within full synchronization in order to guarantee a disconnected Set
+			// 找出beanName被哪些其他bean依赖了，先消耗其他这些bean
 			dependentBeanNames = this.dependentBeanMap.remove(beanName);
 		}
 		if (dependentBeanNames != null) {

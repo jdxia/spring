@@ -306,8 +306,11 @@ public abstract class ExecutorConfigurationSupport extends CustomizableThreadFac
 		if (!this.threadNamePrefixSet && this.beanName != null) {
 			setThreadNamePrefix(this.beanName + "-");
 		}
+
+		// virtualThreads默认为false
 		ThreadFactory factory = (this.virtualThreads ?
 				new VirtualThreadTaskExecutor(getThreadNamePrefix()).getVirtualThreadFactory() : this.threadFactory);
+
 		this.executor = initializeExecutor(factory, this.rejectedExecutionHandler);
 		this.lifecycleDelegate = new ExecutorLifecycleDelegate(this.executor);
 	}

@@ -123,6 +123,8 @@ public class ContextLoaderListener extends ContextLoader implements ServletConte
 	@Override
 	public void contextInitialized(ServletContextEvent event) {
 		ServletContext scToUse = getServletContextToUse(event);
+
+		// 创建父容器
 		initWebApplicationContext(scToUse);
 	}
 

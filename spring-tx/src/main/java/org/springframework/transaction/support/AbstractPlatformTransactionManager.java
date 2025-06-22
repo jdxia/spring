@@ -447,6 +447,7 @@ public abstract class AbstractPlatformTransactionManager
 				logger.debug("Suspending current transaction, creating new transaction with name [" +
 						definition.getName() + "]");
 			}
+			// 挂起资料=数据库连接对象
 			SuspendedResourcesHolder suspendedResources = suspend(transaction);
 			try {
 				return startTransaction(definition, transaction, false, debugEnabled, suspendedResources);
@@ -525,8 +526,10 @@ public abstract class AbstractPlatformTransactionManager
 			boolean nested, boolean debugEnabled, @Nullable SuspendedResourcesHolder suspendedResources) {
 
 		boolean newSynchronization = (getTransactionSynchronization() != SYNCHRONIZATION_NEVER);
+
 		DefaultTransactionStatus status = newTransactionStatus(
 				definition, transaction, true, newSynchronization, nested, debugEnabled, suspendedResources);
+
 		this.transactionExecutionListeners.forEach(listener -> listener.beforeBegin(status));
 		try {
 			doBegin(transaction, definition);
@@ -536,6 +539,7 @@ public abstract class AbstractPlatformTransactionManager
 			throw ex;
 		}
 		prepareSynchronization(status, definition);
+
 		this.transactionExecutionListeners.forEach(listener -> listener.afterBegin(status, null));
 		return status;
 	}
@@ -614,31 +618,42 @@ public abstract class AbstractPlatformTransactionManager
 	@Nullable
 	protected final SuspendedResourcesHolder suspend(@Nullable Object transaction) throws TransactionException {
 		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+
 			List<TransactionSynchronization> suspendedSynchronizations = doSuspendSynchronization();
 			try {
+
+				// suspendedResources就是数据库连接
 				Object suspendedResources = null;
 				if (transaction != null) {
 					suspendedResources = doSuspend(transaction);
 				}
+
 				String name = TransactionSynchronizationManager.getCurrentTransactionName();
 				TransactionSynchronizationManager.setCurrentTransactionName(null);
+
 				boolean readOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
 				TransactionSynchronizationManager.setCurrentTransactionReadOnly(false);
+
 				Integer isolationLevel = TransactionSynchronizationManager.getCurrentTransactionIsolationLevel();
 				TransactionSynchronizationManager.setCurrentTransactionIsolationLevel(null);
+
 				boolean wasActive = TransactionSynchronizationManager.isActualTransactionActive();
 				TransactionSynchronizationManager.setActualTransactionActive(false);
+
 				return new SuspendedResourcesHolder(
 						suspendedResources, suspendedSynchronizations, name, readOnly, isolationLevel, wasActive);
 			}
 			catch (RuntimeException | Error ex) {
 				// doSuspend failed - original transaction is still active...
+				// 挂起失败就恢复
 				doResumeSynchronization(suspendedSynchronizations);
 				throw ex;
 			}
 		}
 		else if (transaction != null) {
+
 			// Transaction active but no synchronization active.
+			// 没有同步器，那就只挂起数据库连接
 			Object suspendedResources = doSuspend(transaction);
 			return new SuspendedResourcesHolder(suspendedResources);
 		}
@@ -701,6 +716,8 @@ public abstract class AbstractPlatformTransactionManager
 	private List<TransactionSynchronization> doSuspendSynchronization() {
 		List<TransactionSynchronization> suspendedSynchronizations =
 				TransactionSynchronizationManager.getSynchronizations();
+
+		// 调用同步器的suspend
 		for (TransactionSynchronization synchronization : suspendedSynchronizations) {
 			synchronization.suspend();
 		}
@@ -739,6 +756,9 @@ public abstract class AbstractPlatformTransactionManager
 		}
 
 		DefaultTransactionStatus defStatus = (DefaultTransactionStatus) status;
+
+		// 可以通过TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+		// 相当于强制回滚
 		if (defStatus.isLocalRollbackOnly()) {
 			if (defStatus.isDebug()) {
 				logger.debug("Transactional code has requested rollback");
@@ -790,8 +810,11 @@ public abstract class AbstractPlatformTransactionManager
 						logger.debug("Initiating transaction commit");
 					}
 					unexpectedRollback = status.isGlobalRollbackOnly();
+
 					this.transactionExecutionListeners.forEach(listener -> listener.beforeCommit(status));
 					commitListenerInvoked = true;
+
+					// 提交
 					doCommit(status);
 				}
 				else if (isFailEarlyOnGlobalRollbackOnly()) {
@@ -844,6 +867,7 @@ public abstract class AbstractPlatformTransactionManager
 
 		}
 		finally {
+			// 恢复
 			cleanupAfterCompletion(status);
 		}
 	}

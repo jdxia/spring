@@ -45,13 +45,17 @@ public class ProxyAsyncConfiguration extends AbstractAsyncConfiguration {
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public AsyncAnnotationBeanPostProcessor asyncAdvisor() {
 		Assert.state(this.enableAsync != null, "@EnableAsync annotation metadata was not injected");
+
 		AsyncAnnotationBeanPostProcessor bpp = new AsyncAnnotationBeanPostProcessor();
 		bpp.configure(this.executor, this.exceptionHandler);
+
 		Class<? extends Annotation> customAsyncAnnotation = this.enableAsync.getClass("annotation");
 		if (customAsyncAnnotation != AnnotationUtils.getDefaultValue(EnableAsync.class, "annotation")) {
 			bpp.setAsyncAnnotationType(customAsyncAnnotation);
 		}
+
 		bpp.setProxyTargetClass(this.enableAsync.getBoolean("proxyTargetClass"));
+
 		bpp.setOrder(this.enableAsync.<Integer>getNumber("order"));
 		return bpp;
 	}

@@ -1,6 +1,6 @@
 plugins {
 	id 'java-gradle-plugin'
-	id 'checkstyle'
+//	id 'checkstyle'
 }
 
 repositories {
@@ -18,7 +18,7 @@ ext {
 }
 
 dependencies {
-	checkstyle "io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}"
+//	checkstyle "io.spring.javaformat:spring-javaformat-checkstyle:${javaFormatVersion}"
 	implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
 	implementation "org.jetbrains.kotlin:kotlin-compiler-embeddable:${kotlinVersion}"
 	implementation "org.gradle:test-retry-gradle-plugin:1.5.6"

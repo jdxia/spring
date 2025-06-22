@@ -112,7 +112,9 @@ public class EventListenerMethodProcessor
 	public void afterSingletonsInstantiated() {
 		ConfigurableListableBeanFactory beanFactory = this.beanFactory;
 		Assert.state(beanFactory != null, "No ConfigurableListableBeanFactory set");
+
 		String[] beanNames = beanFactory.getBeanNamesForType(Object.class);
+
 		for (String beanName : beanNames) {
 			if (!ScopedProxyUtils.isScopedTarget(beanName)) {
 				Class<?> type = null;
@@ -158,6 +160,7 @@ public class EventListenerMethodProcessor
 				AnnotationUtils.isCandidateClass(targetType, EventListener.class) &&
 				!isSpringContainerClass(targetType)) {
 
+
 			Map<Method, EventListener> annotatedMethods = null;
 			try {
 				annotatedMethods = MethodIntrospector.selectMethods(targetType,
@@ -179,16 +182,20 @@ public class EventListenerMethodProcessor
 			}
 			else {
 				// Non-empty set of methods
+				// 存在加了@EventListener注解的方法
 				ConfigurableApplicationContext context = this.applicationContext;
 				Assert.state(context != null, "No ApplicationContext set");
 				List<EventListenerFactory> factories = this.eventListenerFactories;
 				Assert.state(factories != null, "EventListenerFactory List not initialized");
+
 				for (Method method : annotatedMethods.keySet()) {
 					for (EventListenerFactory factory : factories) {
 						if (factory.supportsMethod(method)) {
 							Method methodToUse = AopUtils.selectInvocableMethod(method, context.getType(beanName));
+
 							ApplicationListener<?> applicationListener =
 									factory.createApplicationListener(beanName, targetType, methodToUse);
+
 							if (applicationListener instanceof ApplicationListenerMethodAdapter alma) {
 								alma.init(context, this.evaluator);
 							}

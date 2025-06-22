@@ -309,7 +309,11 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 
 	@Override
 	public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
+
+		// 去找@PostConstruct、@PreDestroy的方法
 		super.postProcessMergedBeanDefinition(beanDefinition, beanType, beanName);
+
+		// 找注入点
 		InjectionMetadata metadata = findResourceMetadata(beanName, beanType, null);
 		metadata.checkConfigMembers(beanDefinition);
 	}
@@ -437,9 +441,12 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 					currElements.add(new EjbRefElement(field, field, null));
 				}
 				else if (jakartaResourceType != null && field.isAnnotationPresent(jakartaResourceType)) {
+
+					// 静态属性直接报错
 					if (Modifier.isStatic(field.getModifiers())) {
 						throw new IllegalStateException("@Resource annotation is not supported on static fields");
 					}
+
 					if (!this.ignoredResourceTypes.contains(field.getType().getName())) {
 						currElements.add(new ResourceElement(field, field, null));
 					}
@@ -473,13 +480,16 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 				}
 				else if (jakartaResourceType != null && bridgedMethod.isAnnotationPresent(jakartaResourceType)) {
 					if (method.equals(ClassUtils.getMostSpecificMethod(method, clazz))) {
+
 						if (Modifier.isStatic(method.getModifiers())) {
 							throw new IllegalStateException("@Resource annotation is not supported on static methods");
 						}
+
 						Class<?>[] paramTypes = method.getParameterTypes();
 						if (paramTypes.length != 1) {
 							throw new IllegalStateException("@Resource annotation requires a single-arg method: " + method);
 						}
+
 						if (!this.ignoredResourceTypes.contains(paramTypes[0].getName())) {
 							PropertyDescriptor pd = BeanUtils.findPropertyForMethod(bridgedMethod, clazz);
 							currElements.add(new ResourceElement(method, bridgedMethod, pd));
@@ -504,6 +514,7 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 			});
 
 			elements.addAll(0, currElements);
+
 			targetClass = targetClass.getSuperclass();
 		}
 		while (targetClass != null && targetClass != Object.class);
@@ -594,8 +605,10 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 		String name = element.name;
 
 		if (factory instanceof AutowireCapableBeanFactory autowireCapableBeanFactory) {
+
 			if (this.fallbackToDefaultTypeMatch && element.isDefaultName && !factory.containsBean(name)) {
 				autowiredBeanNames = new LinkedHashSet<>();
+
 				resource = autowireCapableBeanFactory.resolveDependency(
 						element.getDependencyDescriptor(), requestingBeanName, autowiredBeanNames, null);
 				if (resource == null) {
@@ -606,6 +619,7 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 				resource = autowireCapableBeanFactory.resolveBeanByName(name, element.getDependencyDescriptor());
 				autowiredBeanNames = Collections.singleton(name);
 			}
+
 		}
 		else {
 			resource = factory.getBean(name, element.lookupType);
@@ -706,9 +720,12 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 		public ResourceElement(Member member, AnnotatedElement ae, @Nullable PropertyDescriptor pd) {
 			super(member, pd);
 			jakarta.annotation.Resource resource = ae.getAnnotation(jakarta.annotation.Resource.class);
+
 			String resourceName = resource.name();
 			Class<?> resourceType = resource.type();
+
 			this.isDefaultName = !StringUtils.hasLength(resourceName);
+
 			if (this.isDefaultName) {
 				resourceName = this.member.getName();
 				if (this.member instanceof Method && resourceName.startsWith("set") && resourceName.length() > 3) {
@@ -729,6 +746,7 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 			this.lookupType = resourceType;
 			String lookupValue = resource.lookup();
 			this.mappedName = (StringUtils.hasLength(lookupValue) ? lookupValue : resource.mappedName());
+
 			Lazy lazy = ae.getAnnotation(Lazy.class);
 			this.lazyLookup = (lazy != null && lazy.value());
 		}

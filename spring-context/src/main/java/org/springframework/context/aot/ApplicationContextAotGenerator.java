@@ -51,10 +51,14 @@ public class ApplicationContextAotGenerator {
 	public ClassName processAheadOfTime(GenericApplicationContext applicationContext,
 			GenerationContext generationContext) {
 		return withCglibClassHandler(new CglibClassHandler(generationContext), () -> {
+
+			// 只会创建BeanDefinition，而不会创建Bean对象
 			applicationContext.refreshForAotProcessing(generationContext.getRuntimeHints());
+
 			ApplicationContextInitializationCodeGenerator codeGenerator =
 					new ApplicationContextInitializationCodeGenerator(applicationContext, generationContext);
 			DefaultListableBeanFactory beanFactory = applicationContext.getDefaultListableBeanFactory();
+
 			new BeanFactoryInitializationAotContributions(beanFactory).applyTo(generationContext, codeGenerator);
 			return codeGenerator.getGeneratedClass().getName();
 		});

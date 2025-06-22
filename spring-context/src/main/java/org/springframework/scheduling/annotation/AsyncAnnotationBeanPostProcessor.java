@@ -146,11 +146,16 @@ public class AsyncAnnotationBeanPostProcessor extends AbstractBeanFactoryAwareAd
 	public void setBeanFactory(BeanFactory beanFactory) {
 		super.setBeanFactory(beanFactory);
 
+		// AsyncAnnotationBeanPostProcessor自己在创建的时候会创建一个AsyncAnnotationAdvisor
+		// 注意，这个AsyncAnnotationAdvisor并不会放到BeanFactory中
 		AsyncAnnotationAdvisor advisor = new AsyncAnnotationAdvisor(this.executor, this.exceptionHandler);
+
 		if (this.asyncAnnotationType != null) {
 			advisor.setAsyncAnnotationType(this.asyncAnnotationType);
 		}
+
 		advisor.setBeanFactory(beanFactory);
+
 		this.advisor = advisor;
 	}
 

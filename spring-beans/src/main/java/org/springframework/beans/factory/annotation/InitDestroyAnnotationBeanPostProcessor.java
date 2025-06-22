@@ -313,8 +313,10 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 				}
 			});
 
+
 			initMethods.addAll(0, currInitMethods);
 			destroyMethods.addAll(currDestroyMethods);
+
 			currentClass = currentClass.getSuperclass();
 		}
 		while (currentClass != null && currentClass != Object.class);

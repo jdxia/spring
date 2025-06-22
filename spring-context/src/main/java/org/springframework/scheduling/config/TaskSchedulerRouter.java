@@ -138,6 +138,7 @@ public class TaskSchedulerRouter implements TaskScheduler, BeanNameAware, BeanFa
 
 
 	protected TaskScheduler determineTargetScheduler(Runnable task) {
+		// 根据task对应的方法上的@Scheduled注解中的Scheduler属性找到对应的TaskScheduler类型的Bean
 		String qualifier = determineQualifier(task);
 		if (this.embeddedValueResolver != null && StringUtils.hasLength(qualifier)) {
 			qualifier = this.embeddedValueResolver.resolveStringValue(qualifier);

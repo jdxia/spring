@@ -966,6 +966,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 		invocableMethod.setMethodValidator(this.methodValidator);
 
 		ModelAndViewContainer mavContainer = new ModelAndViewContainer();
+
 		mavContainer.addAllAttributes(RequestContextUtils.getInputFlashMap(request));
 		modelFactory.initModel(webRequest, mavContainer, invocableMethod);
 		mavContainer.setIgnoreDefaultModelOnRedirect(this.ignoreDefaultModelOnRedirect);
@@ -983,7 +984,9 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 			invocableMethod = invocableMethod.wrapConcurrentResult(result);
 		}
 
+		// 执行Handler方法
 		invocableMethod.invokeAndHandle(webRequest, mavContainer);
+
 		if (asyncManager.isConcurrentHandlingStarted()) {
 			return null;
 		}

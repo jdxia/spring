@@ -404,6 +404,7 @@ public class SimpleAsyncTaskExecutor extends CustomizableThreadCreator
 			Set<Thread> threads = activeThreads;
 			Thread thread = null;
 			if (threads != null) {
+				// 把当前线程记为活跃线程
 				thread = Thread.currentThread();
 				threads.add(thread);
 			}

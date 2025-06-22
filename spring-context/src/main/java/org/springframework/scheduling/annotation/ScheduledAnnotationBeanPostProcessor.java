@@ -257,15 +257,18 @@ public class ScheduledAnnotationBeanPostProcessor
 			this.registrar.setTaskScheduler(this.localScheduler);
 		}
 
+		// 获取所有SchedulingConfigurer的bean，并调用configureTasks方法
 		if (this.beanFactory instanceof ListableBeanFactory lbf) {
 			Map<String, SchedulingConfigurer> beans = lbf.getBeansOfType(SchedulingConfigurer.class);
 			List<SchedulingConfigurer> configurers = new ArrayList<>(beans.values());
 			AnnotationAwareOrderComparator.sort(configurers);
+
 			for (SchedulingConfigurer configurer : configurers) {
 				configurer.configureTasks(this.registrar);
 			}
 		}
 
+		// 等所有非懒加载的单例Bean都创建完了之后，才正式开始执行定时任务
 		this.registrar.afterPropertiesSet();
 	}
 
@@ -290,12 +293,15 @@ public class ScheduledAnnotationBeanPostProcessor
 		Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
 		if (!this.nonAnnotatedClasses.contains(targetClass) &&
 				AnnotationUtils.isCandidateClass(targetClass, List.of(Scheduled.class, Schedules.class))) {
+
+			// 判断当前Bean中是否有加了@Scheduled注解的方法，取出这些方法
 			Map<Method, Set<Scheduled>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
 					(MethodIntrospector.MetadataLookup<Set<Scheduled>>) method -> {
 						Set<Scheduled> scheduledAnnotations = AnnotatedElementUtils.getMergedRepeatableAnnotations(
 								method, Scheduled.class, Schedules.class);
 						return (!scheduledAnnotations.isEmpty() ? scheduledAnnotations : null);
 					});
+
 			if (annotatedMethods.isEmpty()) {
 				this.nonAnnotatedClasses.add(targetClass);
 				if (logger.isTraceEnabled()) {
@@ -303,9 +309,12 @@ public class ScheduledAnnotationBeanPostProcessor
 				}
 			}
 			else {
+
 				// Non-empty set of methods
+				// 遍历每一个方法，会调用processScheduled方法
 				annotatedMethods.forEach((method, scheduledAnnotations) ->
 						scheduledAnnotations.forEach(scheduled -> processScheduled(scheduled, method, bean)));
+
 				if (logger.isTraceEnabled()) {
 					logger.trace(annotatedMethods.size() + " @Scheduled methods processed on bean '" + beanName +
 							"': " + annotatedMethods);
@@ -410,8 +419,11 @@ public class ScheduledAnnotationBeanPostProcessor
 			Set<ScheduledTask> tasks = new LinkedHashSet<>(4);
 
 			// Determine initial delay
+			// 确定初始延迟时间
 			Duration initialDelay = toDuration(scheduled.initialDelay(), scheduled.timeUnit());
+
 			String initialDelayString = scheduled.initialDelayString();
+
 			if (StringUtils.hasText(initialDelayString)) {
 				Assert.isTrue(initialDelay.isNegative(), "Specify 'initialDelay' or 'initialDelayString', not both");
 				if (this.embeddedValueResolver != null) {
@@ -429,6 +441,7 @@ public class ScheduledAnnotationBeanPostProcessor
 			}
 
 			// Check cron expression
+			// 如果定义了cron表达式，则创建一个CronTask，按照cron表达式来执行任务
 			String cron = scheduled.cron();
 			if (StringUtils.hasText(cron)) {
 				String zone = scheduled.zone();
@@ -453,15 +466,18 @@ public class ScheduledAnnotationBeanPostProcessor
 			}
 
 			// At this point we don't need to differentiate between initial delay set or not anymore
+			// 如果初始延迟时间小于0，则使用0，否则使用初始延迟时间
 			Duration delayToUse = (initialDelay.isNegative() ? Duration.ZERO : initialDelay);
 
 			// Check fixed delay
+			// 如果定义了fixedDelay，则创建一个FixedDelayTask，按照fixedDelay来执行任务
 			Duration fixedDelay = toDuration(scheduled.fixedDelay(), scheduled.timeUnit());
 			if (!fixedDelay.isNegative()) {
 				Assert.isTrue(!processedSchedule, errorMessage);
 				processedSchedule = true;
 				tasks.add(this.registrar.scheduleFixedDelayTask(new FixedDelayTask(runnable, fixedDelay, delayToUse)));
 			}
+
 			String fixedDelayString = scheduled.fixedDelayString();
 			if (StringUtils.hasText(fixedDelayString)) {
 				if (this.embeddedValueResolver != null) {
@@ -482,6 +498,7 @@ public class ScheduledAnnotationBeanPostProcessor
 			}
 
 			// Check fixed rate
+			// 如果定义了fixedRate，则创建一个FixedRateTask，按照fixedRate来执行任务
 			Duration fixedRate = toDuration(scheduled.fixedRate(), scheduled.timeUnit());
 			if (!fixedRate.isNegative()) {
 				Assert.isTrue(!processedSchedule, errorMessage);
@@ -507,6 +524,7 @@ public class ScheduledAnnotationBeanPostProcessor
 				}
 			}
 
+			// 如果什么都没有定义，则创建一个OneTimeTask
 			if (!processedSchedule) {
 				if (initialDelay.isNegative()) {
 					throw new IllegalArgumentException("One-time task only supported with specified initial delay");
@@ -542,6 +560,7 @@ public class ScheduledAnnotationBeanPostProcessor
 		}
 		Assert.isTrue(method.getParameterCount() == 0, "Only no-arg methods may be annotated with @Scheduled");
 		Method invocableMethod = AopUtils.selectInvocableMethod(method, target.getClass());
+
 		return new ScheduledMethodRunnable(target, invocableMethod, qualifier, this.registrar::getObservationRegistry);
 	}
 

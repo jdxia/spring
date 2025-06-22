@@ -77,6 +77,7 @@ public class ThrowsAdviceInterceptor implements MethodInterceptor, AfterAdvice {
 		Assert.notNull(throwsAdvice, "Advice must not be null");
 		this.throwsAdvice = throwsAdvice;
 
+		// 遍历每个方法
 		Method[] methods = throwsAdvice.getClass().getMethods();
 		for (Method method : methods) {
 			if (method.getName().equals(AFTER_THROWING)) {

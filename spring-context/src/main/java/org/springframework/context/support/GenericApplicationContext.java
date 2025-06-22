@@ -416,6 +416,8 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 		invokeBeanFactoryPostProcessors(this.beanFactory);
 		this.beanFactory.freezeConfiguration();
 		PostProcessorRegistrationDelegate.invokeMergedBeanDefinitionPostProcessors(this.beanFactory);
+
+		// runtimeHints中保存了当前容器中所有Bean的类型和对应的代理类类型
 		preDetermineBeanTypes(runtimeHints);
 	}
 
@@ -437,15 +439,20 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 			singletons.add(beanName);
 		}
 
+		// 利用SmartInstantiationAwareBeanPostProcessor来判断某个Bean需不需要进行AOP
+		// 如果需要则要得到对应的代理类并添加到runtimeHints中去
 		List<SmartInstantiationAwareBeanPostProcessor> bpps =
 				PostProcessorRegistrationDelegate.loadBeanPostProcessors(
 						this.beanFactory, SmartInstantiationAwareBeanPostProcessor.class);
 
 		// Second round: non-lazy singleton beans in definition order,
 		// matching preInstantiateSingletons.
+		// 找出所有非懒加载的单例Bean对应的类型，包含原类型和代理类型
 		for (String beanName : this.beanFactory.getBeanDefinitionNames()) {
 			if (!singletons.contains(beanName)) {
 				BeanDefinition bd = getBeanDefinition(beanName);
+
+				// 非懒加载的单例Bean
 				if (bd.isSingleton() && !bd.isLazyInit()) {
 					preDetermineBeanType(beanName, bpps, runtimeHints);
 				}
@@ -456,6 +463,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 		}
 
 		// Third round: lazy singleton beans and scoped beans.
+		// 找出懒加载的单例Bean和其他作用域的Bean的原类型和代理类型
 		for (String beanName : lazyBeans) {
 			preDetermineBeanType(beanName, bpps, runtimeHints);
 		}
@@ -467,6 +475,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 		Class<?> beanType = this.beanFactory.getType(beanName);
 		if (beanType != null) {
 			ClassHintUtils.registerProxyIfNecessary(beanType, runtimeHints);
+
 			for (SmartInstantiationAwareBeanPostProcessor bpp : bpps) {
 				Class<?> newBeanType = bpp.determineBeanType(beanType, beanName);
 				if (newBeanType != beanType) {

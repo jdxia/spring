@@ -119,6 +119,8 @@ public class BeanNameAutoProxyCreator extends AbstractAutoProxyCreator {
 					}
 					mappedName = mappedName.substring(BeanFactory.FACTORY_BEAN_PREFIX.length());
 				}
+
+				// 进行匹配
 				if (isMatch(beanName, mappedName)) {
 					return true;
 				}

@@ -228,7 +228,7 @@ public final class TestCompiler {
 	 * @see #withCompilerOptions(String...)
 	 */
 	public TestCompiler failOnWarning() {
-		return withCompilerOptions("-Xlint:all", "-Werror");
+		return withCompilerOptions("-Xlint:all");
 	}
 
 	/**

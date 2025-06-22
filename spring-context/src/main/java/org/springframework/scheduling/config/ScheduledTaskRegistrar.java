@@ -426,20 +426,26 @@ public class ScheduledTaskRegistrar implements ScheduledTaskHolder, Initializing
 	 * {@linkplain #setTaskScheduler(TaskScheduler) task scheduler}.
 	 */
 	protected void scheduleTasks() {
+
+		// 如果没有设置定时任务执行器，那么就用单线程的
 		if (this.taskScheduler == null) {
 			this.localExecutor = Executors.newSingleThreadScheduledExecutor();
 			this.taskScheduler = new ConcurrentTaskScheduler(this.localExecutor);
 		}
+
 		if (this.triggerTasks != null) {
 			for (TriggerTask task : this.triggerTasks) {
 				addScheduledTask(scheduleTriggerTask(task));
 			}
 		}
+
 		if (this.cronTasks != null) {
 			for (CronTask task : this.cronTasks) {
 				addScheduledTask(scheduleCronTask(task));
 			}
 		}
+
+		// FixedRateTask表示固定频率的定时任务，下一次任务开始执行的时间是上一次任务开始执行的时间加上指定的时间间隔
 		if (this.fixedRateTasks != null) {
 			for (IntervalTask task : this.fixedRateTasks) {
 				if (task instanceof FixedRateTask fixedRateTask) {
@@ -450,6 +456,8 @@ public class ScheduledTaskRegistrar implements ScheduledTaskHolder, Initializing
 				}
 			}
 		}
+
+		// FixedDelayTask表示固定延迟的定时任务，下一次任务开始执行的时间是上一次任务执行完成的时间加上指定的时间间隔
 		if (this.fixedDelayTasks != null) {
 			for (IntervalTask task : this.fixedDelayTasks) {
 				if (task instanceof FixedDelayTask fixedDelayTask) {
@@ -460,6 +468,8 @@ public class ScheduledTaskRegistrar implements ScheduledTaskHolder, Initializing
 				}
 			}
 		}
+
+		// OneTimeTask表示一次性定时任务
 		if (this.oneTimeTasks != null) {
 			for (DelayedTask task : this.oneTimeTasks) {
 				if (task instanceof OneTimeTask oneTimeTask) {
@@ -518,6 +528,7 @@ public class ScheduledTaskRegistrar implements ScheduledTaskHolder, Initializing
 			scheduledTask = new ScheduledTask(task);
 			newTask = true;
 		}
+
 		if (this.taskScheduler != null) {
 			scheduledTask.future = this.taskScheduler.schedule(task.getRunnable(), task.getTrigger());
 		}

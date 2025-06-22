@@ -55,6 +55,8 @@ class BeanFactoryInitializationAotContributions {
 
 	private static List<BeanFactoryInitializationAotProcessor> getProcessors(
 			AotServices.Loader loader) {
+
+		// 从aot.factories文件中获取所有的BeanFactoryInitializationAotProcessor
 		List<BeanFactoryInitializationAotProcessor> processors = new ArrayList<>(
 				loader.load(BeanFactoryInitializationAotProcessor.class).asList());
 		processors.add(new RuntimeHintsBeanFactoryInitializationAotProcessor());
@@ -65,6 +67,8 @@ class BeanFactoryInitializationAotContributions {
 			DefaultListableBeanFactory beanFactory,
 			List<BeanFactoryInitializationAotProcessor> processors) {
 		List<BeanFactoryInitializationAotContribution> contributions = new ArrayList<>();
+
+		// 利用每个BeanFactoryInitializationAotProcessor得到对应的BeanFactoryInitializationAotContribution
 		for (BeanFactoryInitializationAotProcessor processor : processors) {
 			BeanFactoryInitializationAotContribution contribution = processAheadOfTime(processor, beanFactory);
 			if (contribution != null) {
@@ -92,6 +96,8 @@ class BeanFactoryInitializationAotContributions {
 
 	void applyTo(GenerationContext generationContext,
 			BeanFactoryInitializationCode beanFactoryInitializationCode) {
+
+
 		for (BeanFactoryInitializationAotContribution contribution : this.contributions) {
 			contribution.applyTo(generationContext, beanFactoryInitializationCode);
 		}

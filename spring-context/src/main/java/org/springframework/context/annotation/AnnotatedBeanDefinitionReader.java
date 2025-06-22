@@ -84,8 +84,20 @@ public class AnnotatedBeanDefinitionReader {
 	public AnnotatedBeanDefinitionReader(BeanDefinitionRegistry registry, Environment environment) {
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
 		Assert.notNull(environment, "Environment must not be null");
+
+		// BeanDefinitionRegistry是用来注册Bean的
 		this.registry = registry;
+
+		// ConditionEvaluator是用来处理@Condition注解的
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, null);
+
+		// 会注册一些PostProcessor，包括：
+		// ConfigurationClassPostProcessor
+		// AutowiredAnnotationBeanPostProcessor
+		// CommonAnnotationBeanPostProcessor
+		// PersistenceAnnotationBeanPostProcessor
+		// EventListenerMethodProcessor
+		// DefaultEventListenerFactory
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
 
@@ -251,17 +263,27 @@ public class AnnotatedBeanDefinitionReader {
 			@Nullable BeanDefinitionCustomizer[] customizers) {
 
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+
+		// 解析@Conditional
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
 
 		abd.setAttribute(ConfigurationClassUtils.CANDIDATE_ATTRIBUTE, Boolean.TRUE);
 		abd.setInstanceSupplier(supplier);
+
+		// 解析@Scope
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
 		abd.setScope(scopeMetadata.getScopeName());
+
+		// 得到beanName，默认beanNameGenerator为AnnotationBeanNameGenerator
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
 
+		// 解析@Lazy、@Primary、@Fallback、@DependsOn、@Role、@Description等注解
+		// Spring AI中就用到了@Description注解，用来定义提示词
+		// @Fallback是Spring 6新增的，和@Primary互补
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+
 		if (qualifiers != null) {
 			for (Class<? extends Annotation> qualifier : qualifiers) {
 				if (Primary.class == qualifier) {
@@ -286,6 +308,8 @@ public class AnnotatedBeanDefinitionReader {
 
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+
+		// 将BeanDefinition注册到BeanDefinitionRegistry中
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 

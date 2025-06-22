@@ -117,10 +117,15 @@ public class ScheduledMethodRunnable implements SchedulingAwareRunnable {
 
 	@Override
 	public void run() {
+		// 定时任务执行时会先执行此方法
+
 		ScheduledTaskObservationContext context = new ScheduledTaskObservationContext(this.target, this.method);
 		Observation observation = ScheduledTaskObservationDocumentation.TASKS_SCHEDULED_EXECUTION.observation(
 				null, DEFAULT_CONVENTION,
 				() -> context, this.observationRegistrySupplier.get());
+
+		// runInternal()会执行具体的定时任务方法
+		// Observation是用来监控观察定时任务执行状态的
 		observation.observe(() -> runInternal(context));
 	}
 

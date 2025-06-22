@@ -148,6 +148,7 @@ public class ConcurrentMapCache extends AbstractValueAdaptingCache {
 	public <T> T get(Object key, Callable<T> valueLoader) {
 		return (T) fromStoreValue(this.store.computeIfAbsent(key, k -> {
 			try {
+				// valueLoader.call()就是执行方法
 				return toStoreValue(valueLoader.call());
 			}
 			catch (Throwable ex) {

@@ -93,10 +93,13 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 			synchronized (this) {
 				aspectNames = this.aspectBeanNames;
 				if (aspectNames == null) {
+
 					List<Advisor> advisors = new ArrayList<>();
 					aspectNames = new ArrayList<>();
+
 					String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 							this.beanFactory, Object.class, true, false);
+
 					for (String beanName : beanNames) {
 						if (!isEligibleBean(beanName)) {
 							continue;
@@ -113,6 +116,8 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 								if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
 									MetadataAwareAspectInstanceFactory factory =
 											new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+
+									// 获取当前切面里的所有Advisor
 									List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
 									if (this.beanFactory.isSingleton(beanName)) {
 										this.advisorsCache.put(beanName, classAdvisors);

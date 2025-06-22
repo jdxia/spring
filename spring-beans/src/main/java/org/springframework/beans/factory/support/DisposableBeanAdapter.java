@@ -197,6 +197,7 @@ class DisposableBeanAdapter implements DisposableBean, Runnable, Serializable {
 
 	@Override
 	public void destroy() {
+
 		if (!CollectionUtils.isEmpty(this.beanPostProcessors)) {
 			for (DestructionAwareBeanPostProcessor processor : this.beanPostProcessors) {
 				processor.postProcessBeforeDestruction(this.bean, this.beanName);
@@ -410,15 +411,20 @@ class DisposableBeanAdapter implements DisposableBean, Runnable, Serializable {
 	 */
 	@Nullable
 	static String[] inferDestroyMethodsIfNecessary(Class<?> target, RootBeanDefinition beanDefinition) {
+
 		String[] destroyMethodNames = beanDefinition.getDestroyMethodNames();
+
 		if (destroyMethodNames != null && destroyMethodNames.length > 1) {
 			return destroyMethodNames;
 		}
 
 		String destroyMethodName = beanDefinition.resolvedDestroyMethodName;
 		if (destroyMethodName == null) {
+
 			destroyMethodName = beanDefinition.getDestroyMethodName();
+
 			boolean autoCloseable = (AutoCloseable.class.isAssignableFrom(target));
+
 			if (AbstractBeanDefinition.INFER_METHOD.equals(destroyMethodName) ||
 					(destroyMethodName == null && autoCloseable)) {
 				// Only perform destroy method inference in case of the bean

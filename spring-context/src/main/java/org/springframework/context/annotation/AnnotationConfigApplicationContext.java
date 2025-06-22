@@ -66,8 +66,12 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 */
 	public AnnotationConfigApplicationContext() {
 		StartupStep createAnnotatedBeanDefReader = getApplicationStartup().start("spring.context.annotated-bean-reader.create");
+		// BeanDefinition读取器，可以注册BeanDefinition，也可以读取BeanDefinition
+		// 本质上就是BeanDefinitionRegistry，多了ConditionEvaluator，以及注册了一些默认的PostProcessor
 		this.reader = new AnnotatedBeanDefinitionReader(this);
 		createAnnotatedBeanDefReader.end();
+
+		// BeanDefinition扫描器，负责扫描
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}
 
@@ -89,7 +93,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 		this();
-		register(componentClasses);
+		register(componentClasses); // beanDefinitionMap
 		refresh();
 	}
 
@@ -165,6 +169,9 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		Assert.notEmpty(componentClasses, "At least one component class must be specified");
 		StartupStep registerComponentClass = getApplicationStartup().start("spring.context.component-classes.register")
 				.tag("classes", () -> Arrays.toString(componentClasses));
+
+		// 利用AnnotatedBeanDefinitionReader将componentClasses注册为BeanDefinition
+		// 这是直接将componentClasses注册到Spring容器中，不涉及扫描，refresh时才会扫描
 		this.reader.register(componentClasses);
 		registerComponentClass.end();
 	}
