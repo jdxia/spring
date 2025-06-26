@@ -120,8 +120,12 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 		if (factory.isSingleton() && containsSingleton(beanName)) {
 			this.singletonLock.lock();
 			try {
+
+				// 先从缓存中取
 				Object object = this.factoryBeanObjectCache.get(beanName);
 				if (object == null) {
+
+					// 调用 factoryBean的 getObject 方法了
 					object = doGetObjectFromFactoryBean(factory, beanName);
 					// Only post-process and store if not put there already during getObject() call above
 					// (for example, because of circular reference processing triggered by custom getBean calls)
@@ -138,6 +142,8 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 							beforeSingletonCreation(beanName);
 							try {
 								// 执行初始化后
+								// 此方法为AbstractAutowireCapableBeanFactory重写，应用BeanPostProcessor的postProcessAfterInitialization()方法
+								// 在Bean初始化之后做一些事情, getObject() 方法返回的对象进行后置处理
 								object = postProcessObjectFromFactoryBean(object, beanName);
 							}
 							catch (Throwable ex) {
@@ -149,6 +155,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 							}
 						}
 						if (containsSingleton(beanName)) {
+							// factoryBean 创建出来的单例对象 单独存在一个 单独的map中
 							this.factoryBeanObjectCache.put(beanName, object);
 						}
 					}

@@ -240,9 +240,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			String name, @Nullable Class<T> requiredType, @Nullable Object[] args, boolean typeCheckOnly)
 			throws BeansException {
 
-		// name为&zhouyuFactoryBean，beanName则为zhouyuFactoryBean
-		// name为zhouyuFactoryBean，beanName也为zhouyuFactoryBean
-		// 如果name为别名，那么beanName则为对应的主名字
+		/**
+		 * name为&myFactoryBean，beanName则为myFactoryBean
+		 * name为myFactoryBean，beanName也为myFactoryBean
+		 * 如果name为别名，那么beanName则为对应的主名字
+		 */
 		String beanName = transformedBeanName(name);
 		Object beanInstance;
 
@@ -259,6 +261,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
+
+			/**
+			 *  factory bean核心
+			 * 这里如果是普通Bean 的话，直接返回
+			 * 处理FactoryBean相关，核心方法
+			 * 完成 FactoryBean 的相关处理，并用来获取 FactoryBean 的处理结果
+			 */
 			beanInstance = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
@@ -1175,6 +1184,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	@Override
 	public boolean isFactoryBean(String name) throws NoSuchBeanDefinitionException {
+		// beanName: myFactoryBean
 		String beanName = transformedBeanName(name);
 		Object beanInstance = getSingleton(beanName, false);
 		if (beanInstance != null) {
@@ -1185,6 +1195,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			// No bean definition found in this factory -> delegate to parent.
 			return cbf.isFactoryBean(name);
 		}
+
+		// 往下
 		return isFactoryBean(beanName, getMergedLocalBeanDefinition(beanName));
 	}
 
@@ -1704,6 +1716,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	protected boolean isFactoryBean(String beanName, RootBeanDefinition mbd) {
 		Boolean result = mbd.isFactoryBean;
 		if (result == null) {
+			// 判断类型是不是 FactoryBean
 			Class<?> beanType = predictBeanType(beanName, mbd, FactoryBean.class);
 			result = (beanType != null && FactoryBean.class.isAssignableFrom(beanType));
 			mbd.isFactoryBean = result;
@@ -1850,17 +1863,23 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
-		// 传进来的是&zhouyuFactoryBean，那么直接返回当前beanInstance
+		// 如果是&xxx, 那么就直接返回单例池中的对象
+		// 判断是否以前缀&开头，如果以&开头，说明获取的Bean是FactoryBean自身对象，beanInstance此时就是FactoryBean类型
 		if (BeanFactoryUtils.isFactoryDereference(name)) {
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
 			}
 			if (!(beanInstance instanceof FactoryBean)) {
+				//抛出Bean不是一个Factory异常
 				throw new BeanIsNotAFactoryException(beanName, beanInstance.getClass());
 			}
+
+			//如果mbd不为null
 			if (mbd != null) {
+				//设置mbd是否是FactoryBean标记为true
 				mbd.isFactoryBean = true;
 			}
+			//返回beanInstance
 			return beanInstance;
 		}
 

@@ -3,9 +3,9 @@ package com.demo.service;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ZhouyuService {
+public class MyDemoService {
 
 	public String test() {
-		return "hello zhouyu";
+		return "hello MyDemoService";
 	}
 }

@@ -41,7 +41,7 @@ public class KotlinConventions {
 		kotlinOptions.setJavaParameters(true);
 		kotlinOptions.setAllWarningsAsErrors(false);
 		List<String> freeCompilerArgs = new ArrayList<>(compile.getKotlinOptions().getFreeCompilerArgs());
-		freeCompilerArgs.addAll(List.of("-Xsuppress-version-warnings", "-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn"));
+//		freeCompilerArgs.addAll(List.of("-Xsuppress-version-warnings", "-Xjsr305=strict", "-opt-in=kotlin.RequiresOptIn"));
 		compile.getKotlinOptions().setFreeCompilerArgs(freeCompilerArgs);
 	}
 

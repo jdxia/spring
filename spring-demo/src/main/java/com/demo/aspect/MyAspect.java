@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Aspect
 public class MyAspect {
 
-//	@DeclareParents(value = "com.zhouyu.service.UserService", defaultImpl = UserImplement.class)
+//	@DeclareParents(value = "com.demo.service.UserService", defaultImpl = UserImplement.class)
 //	private UserInterface userInterface;
 
 
@@ -24,10 +24,6 @@ public class MyAspect {
 		System.out.println("my Before");
 	}
 
-	@Before("execution(public void com.demo.service.UserService.test())")
-	public void zhouyuBefore1(JoinPoint joinPoint) {
-		System.out.println("my Before1");
-	}
 
 
 

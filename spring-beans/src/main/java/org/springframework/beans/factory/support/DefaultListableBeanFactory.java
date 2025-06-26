@@ -1132,12 +1132,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// 根据beanName判断是不是FactoryBean，会根据beanName找到BeanDefinition，从而找到对应类型，从而进行判断
 		if (isFactoryBean(beanName)) {
-			// 创建FactoryBean本身，先创建ZhouyuFactoryBean对象
+			// 创建FactoryBean本身，先创建MyFactoryBean对象
 			Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
 
 			// 创建FactoryBean中getObject()方法返回的Bean
 			if (bean instanceof SmartFactoryBean<?> smartFactoryBean && smartFactoryBean.isEagerInit()) {
-				// 调用ZhouyuFactoryBean对象的getObject()
+				// 调用myFactoryBean对象的getObject()
 				getBean(beanName);
 			}
 		}
