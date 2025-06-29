@@ -79,4 +79,7 @@ dependencies {
 	testRuntimeOnly("org.jruby:jruby")
 	testRuntimeOnly("org.python:jython-standalone")
 	testRuntimeOnly("org.webjars:underscorejs")
+
+	//	引入内嵌的tomcat
+	testImplementation("org.apache.tomcat.embed:tomcat-embed-core")
 }

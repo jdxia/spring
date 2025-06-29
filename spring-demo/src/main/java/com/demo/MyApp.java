@@ -1,22 +1,21 @@
 package com.demo;
 
+import com.demo.config.MyConfig;
 import com.demo.factory.Order;
 import com.demo.service.AService;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScans;
 
 import java.io.IOException;
 
-public class MyApplication {
+public class MyApp {
 
 	public static void main(String[] args) throws IOException {
 
 		System.out.println("=====================> debug start");
 
-//		testBean();
+		testBean();
 
-		testFactoryBean();
+//		testFactoryBean();
 
 		System.out.println("=====================> debug stop");
 	}
@@ -33,10 +32,7 @@ public class MyApplication {
 	}
 
 	private static void testFactoryBean() {
-		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
-		applicationContext.register(MyConfig.class);
-		applicationContext.setAllowCircularReferences(true);
-		applicationContext.refresh();
+		AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MyConfig.class);
 
 		// &orderFactoryBean  --> orderFactoryBean  --> orderFactoryBean对象 -->有&就获取 --> orderFactoryBean对象
 		System.out.println("factoryBean对象: " + applicationContext.getBean("&orderFactoryBean"));

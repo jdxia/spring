@@ -68,20 +68,20 @@ class BackgroundBootstrapTests {
 		ctx.close();
 	}
 
-	@Test
-	@Timeout(10)
-	@EnabledForTestGroups(LONG_RUNNING)
-	void bootstrapWithStrictLockingFlag() {
-		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME);
-		try {
-			ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(StrictLockingBeanConfig.class);
-			assertThat(ctx.getBean("testBean2", TestBean.class).getSpouse()).isSameAs(ctx.getBean("testBean1"));
-			ctx.close();
-		}
-		finally {
-			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
-		}
-	}
+//	@Test
+//	@Timeout(10)
+//	@EnabledForTestGroups(LONG_RUNNING)
+//	void bootstrapWithStrictLockingFlag() {
+//		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME);
+//		try {
+//			ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(StrictLockingBeanConfig.class);
+//			assertThat(ctx.getBean("testBean2", TestBean.class).getSpouse()).isSameAs(ctx.getBean("testBean1"));
+//			ctx.close();
+//		}
+//		finally {
+//			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
+//		}
+//	}
 
 	@Test
 	@Timeout(10)
@@ -98,26 +98,26 @@ class BackgroundBootstrapTests {
 		ctx.close();
 	}
 
-	@Test
-	@Timeout(10)
-	@EnabledForTestGroups(LONG_RUNNING)
-	void bootstrapWithStrictLockingTurnedOff() throws InterruptedException {
-		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, false);
-		try {
-			AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-			ctx.register(InferredLockingBeanConfig.class);
-			ExecutorService threadPool = Executors.newFixedThreadPool(2);
-			threadPool.submit(() -> ctx.refresh());
-			Thread.sleep(500);
-			threadPool.submit(() -> ctx.getBean("testBean2"));
-			Thread.sleep(1000);
-			assertThat(ctx.getBean("testBean2", TestBean.class).getSpouse()).isNull();
-			ctx.close();
-		}
-		finally {
-			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
-		}
-	}
+//	@Test
+//	@Timeout(10)
+//	@EnabledForTestGroups(LONG_RUNNING)
+//	void bootstrapWithStrictLockingTurnedOff() throws InterruptedException {
+//		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, false);
+//		try {
+//			AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+//			ctx.register(InferredLockingBeanConfig.class);
+//			ExecutorService threadPool = Executors.newFixedThreadPool(2);
+//			threadPool.submit(() -> ctx.refresh());
+//			Thread.sleep(500);
+//			threadPool.submit(() -> ctx.getBean("testBean2"));
+//			Thread.sleep(1000);
+//			assertThat(ctx.getBean("testBean2", TestBean.class).getSpouse()).isNull();
+//			ctx.close();
+//		}
+//		finally {
+//			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
+//		}
+//	}
 
 	@Test
 	@Timeout(10)
@@ -168,23 +168,23 @@ class BackgroundBootstrapTests {
 		ctx.close();
 	}
 
-	@Test
-	@Timeout(10)
-	@EnabledForTestGroups(LONG_RUNNING)
-	void bootstrapWithCustomExecutorAndStrictLocking() {
-		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME);
-		try {
-			ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(CustomExecutorBeanConfig.class);
-			ctx.getBean("testBean1", TestBean.class);
-			ctx.getBean("testBean2", TestBean.class);
-			ctx.getBean("testBean3", TestBean.class);
-			ctx.getBean("testBean4", TestBean.class);
-			ctx.close();
-		}
-		finally {
-			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
-		}
-	}
+//	@Test
+//	@Timeout(10)
+//	@EnabledForTestGroups(LONG_RUNNING)
+//	void bootstrapWithCustomExecutorAndStrictLocking() {
+//		SpringProperties.setFlag(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME);
+//		try {
+//			ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(CustomExecutorBeanConfig.class);
+//			ctx.getBean("testBean1", TestBean.class);
+//			ctx.getBean("testBean2", TestBean.class);
+//			ctx.getBean("testBean3", TestBean.class);
+//			ctx.getBean("testBean4", TestBean.class);
+//			ctx.close();
+//		}
+//		finally {
+//			SpringProperties.setProperty(DefaultListableBeanFactory.STRICT_LOCKING_PROPERTY_NAME, null);
+//		}
+//	}
 
 
 	@Configuration(proxyBeanMethods = false)

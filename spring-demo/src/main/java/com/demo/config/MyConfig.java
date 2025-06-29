@@ -1,4 +1,4 @@
-package com.demo;
+package com.demo.config;
 
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import java.util.Arrays;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @ComponentScan("com.demo")
 @EnableTransactionManagement
@@ -35,20 +36,16 @@ public class MyConfig {
 		executor.setCorePoolSize(10);
 		executor.setMaxPoolSize(50);
 		executor.setThreadNamePrefix("myDemo-");
+		// 优雅地关闭线程池
+		// 该方法用来设置线程池关闭的时候等待所有任务都完成后，再继续销毁其他的Bean，
+		// 这样异步任务的销毁就会先于数据库连接池对象的销毁。
+		executor.setWaitForTasksToCompleteOnShutdown(true);
+		executor.setAwaitTerminationSeconds(10);
+		executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
 		executor.initialize();
 
 		return executor;
 	}
-
-//	@Bean
-//	public TaskScheduler taskScheduler() {
-//		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-//		taskScheduler.setPoolSize(5);
-//		taskScheduler.setThreadNamePrefix("myDemo-");
-//		taskScheduler.initialize();
-//
-//		return taskScheduler;
-//	}
 
 //	@Bean
 //	public SchedulingConfigurer schedulingConfigurer() {

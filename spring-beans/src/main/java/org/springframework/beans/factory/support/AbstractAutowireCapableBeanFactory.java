@@ -57,6 +57,7 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.InjectionPoint;
 import org.springframework.beans.factory.UnsatisfiedDependencyException;
+import org.springframework.beans.factory.annotation.InitDestroyAnnotationBeanPostProcessor;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.AutowiredPropertyMarker;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -425,6 +426,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeansException {
 
 		Object result = existingBean;
+		/**
+		 * {@link InitDestroyAnnotationBeanPostProcessor#postProcessBeforeInitialization(Object, String)}
+		 */
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessBeforeInitialization(result, beanName);
 			if (current == null) {
@@ -441,6 +445,19 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeansException {
 
 		Object result = existingBean;
+
+		/**
+		 * 如果开启了aop, 就是配置类上加了 @EnableAspectJAutoProxy
+		 * 会多一个BeanPostProcessor 是 AnnotationAwareAspectJAutoProxyCreator, 父类有 AbstractAutoProxyCreator 这个类处理了aop的相关逻辑,
+		 * aop是 AbstractAutoProxyCreator 这个类
+		 * AspectJ 是 AnnotationAwareAspectJAutoProxyCreator, 它会解析AspectJ相关的注解
+		 * AnnotationAwareAspectJAutoProxyCreator 它父类的父类就是 AbstractAutoProxyCreator
+		 *
+		 * 异步 @Async注解是 AsyncAnnotationBeanPostProcessor 这个类处理的
+		 * 事件监听器是 ApplicationListenerDetector 类, 判断这个bean有没有实现 ApplicationListener 接口, 有的话添加到 set里面
+		 *
+		 * 如果你这边不想处理就直接返回原始的bean, return bean, 比如Autowired和Resource的BeanPostProcessor就没在这处理, 就直接返回了
+		 */
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessAfterInitialization(result, beanName);
 			if (current == null) {
@@ -564,21 +581,30 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected Object doCreateBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
 			throws BeanCreationException {
+		// 这个方法非常的核心, 大部分 bean生命周期都在这!!!
+
+		// 注意下： Initialization 表示 初始化 （意思是对象还未生成） 。 Instantiation 表示 实例化 （意思是对象已经生成）
 
 		// Instantiate the bean.
+		//实例化bean
 		BeanWrapper instanceWrapper = null;
 		if (mbd.isSingleton()) {
+			// 如果是factoryBean则从缓存删除
+			// 有可能在本bean创建之前, 就有其他bean把当前bean给创建出来了(比如依赖注入过程)
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 
 		// 推断构造方法、构造方法注入、@Bean的处理都在里面
 		if (instanceWrapper == null) {
+			// 里面有推断构造方法
+			// 实例化 Bean, 但是尚未设置属性，这个方法里面才是终点
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 
 		// 实例对象 UserService对象
 		Object bean = instanceWrapper.getWrappedInstance();
 
+		//bean类型
 		Class<?> beanType = instanceWrapper.getWrappedClass();
 		if (beanType != NullBean.class) {
 			mbd.resolvedTargetType = beanType;
@@ -589,7 +615,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					// 会寻找注入点并进行缓存
+					/**
+					 * 实例化之后, 属性注入之前, spring允许再次修改 BeanDefinition
+					 *
+					 * 循环调用实现了 MergedBeanDefinitionPostProcessor 接口的postProcessMergedBeanDefinition方法
+					 * MergedBeanDefinitionPostProcessor 接口有个重要的 实现类是 InitDestroyAnnotationBeanPostProcessor 往下追有 buildLifecycleMetadata
+					 *
+					 * Spring对这个接口有几个默认的实现，其中大家最熟悉的一个是操作 @Autowired 注解的操作这个 BeanDefinition
+					 * 可以影响后续步骤, 前面的步骤影响不了
+					 */
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -602,24 +636,94 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
+		/**
+		 * 三级缓存查找
+		 * org.springframework.beans.factory.support.DefaultSingletonBeanRegistry#getSingleton(java.lang.String, boolean)
+		 *
+		 * =======================================================================循环依赖, spring解决思路================================================================================
+		 * 三级缓存和是否需要提前Aop(是否需要提前AOP很重要)
+		 * 1. singletonObjects 单例池, 最终创建好的, 经过完整的生命周期的
+		 * 2. earlySingletonObjects 提前AOP的容器, 如果要进行aop就把代理对象放这里, 否则原始对象放这里
+		 * 3. singletonFactories 原始对象或者aop创建中的容器, 存放的是lambda表达式, 原始对象或者aop创建中的逻辑
+		 *
+		 * 为什么要三级缓存和是否需要提前Aop(是否需要提前AOP很重要)?
+		 * 看一个例子: A 依赖 B, B依赖C, C依赖A,  A--->B--->C--->A , 然后A 需要AOP
+		 *
+		 * A: 先执行A的生命周期, 实例化A得到一个对象, 放到 singletonFactories 原始对象创建中的容器, 进行属性填充, 需要B对象
+		 * B: 执行B的生命周期, 实例化B得到一个对象, 进行属性填充, 需要C对象
+		 * C: 执行C的生命周期, 实例化C得到一个对象, 进行属性填充, 需要A对象, 重点来了
+		 *  A这个时候是实例化的对象, 那如果A需要AOP呢? 能把原始对象给C进行属性注入吗? 不能!!!, 这时候A需要提前AOP了, 那为啥还需要一个 earlySingletonObjects 提前AOP的容器 存起来呢?
+		 *  如果C属性 还依赖D对象, D 也依赖A对象, 那D还需要把A的原始对象重新进行AOP创建代理对象吗? 不需要, 有earlySingletonObjects 提前AOP的容器 找A就行
+		 *
+		 *  C把A从singletonFactories 原始对象创建中的容器找出来, 然后对A提前AOP, 放到earlySingletonObjects 提前AOP的容器, 自己注入AOP对象就行
+		 *  A剩下的生命周期还会继续走
+		 *
+		 *  spring怎么发现有属性循环依赖的?  比如 C去找A对象, 发现A对象在singletonObjects 单例池里面没有, 但是却在 singletonFactories原始对象创建中的容器, 就知道A没创建好, 我就依赖他了
+		 *  所以 singletonFactories原始对象创建中的容器, 能打破循环依赖
+		 *
+		 *  那 singletonFactories 原始对象创建中的容器 为啥需要这个?
+		 *  我把 A的原始对象当参数一层层传进去不行吗? 可以, 那这样代码很难看, 不容易懂
+		 *
+		 *  如果 A-->B-->A, A和B都是原型的, 属性循环依赖能解决吗? 不能, 如果只有一个是原型的呢? 能解决
+		 *  如果是构造方法依赖导致的循环依赖能解决吗? 不能, 因为这时候对象都实例化不了, 解决不了, 除非加@Lazy注解, @Lazy为啥可以下面看
+		 * ========================================================================================================================================================================
+		 *
+		 * 解决循环依赖问题, 提前缓存单例创建工厂
+		 * earlySingletonExposure 默认是true, 先看是不是单例, 再是否允许循环依赖, 最后看这个bean是否在创建中
+		 */
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
+
+		/**
+		 * 如果不支持循环依赖就不会进来
+		 * ioc.setAllowCircularReferences(false); ioc.refresh(); 这样写就可以让ioc容器不支持循环依赖了
+		 */
 		if (earlySingletonExposure) {
 			if (logger.isTraceEnabled()) {
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
-			// 三级缓存
+			/**
+			 * 比如 A--->B--->C--->A, A这时候在 singletonFactories 原始对象创建中的容器, 然后A在下面的属性填充代码的生命周期触发了其他类的初始化
+			 * 然后 B和C也会走到这里, A这个时候, 还在 singletonFactories 原始对象创建中的容器, 并且是lambda表达式
+			 * C把A进行属性填充的时候, 会调用getBean(A), 剩下的循环依赖逻辑去那看
+			 *
+			 * ========================================================================================================================================================================
+			 * 这个方法做的是: 循环依赖, 添加到三级缓存
+			 * 把第二个参数, () -> getEarlyBeanReference(beanName, mbd, bean) 这个lambda表达式, 存到第三级缓存里面
+			 * lambda表达式 目前还不会执行, 只是放到 三级缓存
+			 * lambda表达式 里面有如果aop就提前aop的逻辑
+			 */
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
-			// 填充Bean，也就是依赖注入
+			/**
+			 * 属性填充, 负责属性装配, 很重要
+			 * { @Autowired, @Resource } 在这里处理
+			 */
 			populateBean(beanName, mbd, instanceWrapper);
 
-			// 初始化Bean，初始化前、初始化、初始化后
+			/**
+			 * 初始化, 这里是处理bean初始化完成后的各种回调，例如init-method、InitializingBean 接口、BeanPostProcessor 接口,其中aop就在 里面的 初始化后
+			 * 1. invokeAwareMethods 回调 BeanNameAware, BeanClassLoaderAware, BeanFactoryAware
+			 * 2. 初始化前  applyBeanPostProcessorsBeforeInitialization
+			 * 3. 初始化 invokeInitMethods
+			 * 4. 初始化后 applyBeanPostProcessorsAfterInitialization
+			 *
+			 * =====================================循环依赖情况======================================================================================================================
+			 * 如果有提前AOP, 那这 AOP的BeanPostProcessor 是 AnnotationAwareAspectJAutoProxyCreator, 父类有 AbstractAutoProxyCreator 这个类处理了aop的相关逻辑,
+			 * 会返回Bean原始对象
+			 *
+			 * initializeBean方法可能返回值 和 exposedObject 不是一个, 会把对象改了, 下面有抛异常的throw new BeanCurrentlyInCreationException可以看下
+			 *
+			 * ====================================================================================================================================================
+			 * 1. Aware接口
+			 * 2. 实现了 InitializingBean 接口, 有 initMethod 方法
+			 * 3. postProcessAfterInitialization
+			 */
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -631,10 +735,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}
 		}
 
+		//同样的，如果存在循环依赖
 		if (earlySingletonExposure) {
+			/**
+			 * 从二级缓存拿代理的对象, 这边 第二个参数 allowEarlyReference 传的是false
+			 * 因为要把AOP代理后的对象放到 单例池里面, 这个因为是 在 初始化后aop的这个方法 AbstractAutoProxyCreator#postProcessAfterInitialization 它aop返回的是原始对象
+			 */
 			Object earlySingletonReference = getSingleton(beanName, false);
+			// 二级缓存, 拿到了
 			if (earlySingletonReference != null) {
 				if (exposedObject == bean) {
+					// 上面如果存在循环依赖, 比较 二级缓存拿到的对象 和我原来创建的bean对象是不是一个, 是的话赋值返回
 					exposedObject = earlySingletonReference;
 				}
 				else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {
@@ -646,6 +757,21 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 						}
 					}
 					if (!actualDependentBeans.isEmpty()) {
+						/**
+						 * 什么时候会进这里报错?
+						 * 比如A->B->A, A的某个成员方法上又加了个@Async, 因为@Async也有个单独的BeanPostProcessor处理把A再次进行AOP增强
+						 * 因为spring处理循环依赖的时候, 是把A进行了提前AOP增强, 然后 把这个二级缓存的A 给了 B对象的属性
+						 * 然后A在进行 initializeBean 初始化 那边把bean 又AOP增强了一下, 导致 ioc容器里面的A 和 B对象属性里面注入的A 不是同一个, 这是不行的
+						 *
+						 * 怎么解决? A对象 依赖B对象, 上面再加个@Lazy注解就可以
+						 * 为什么@Lazy注解就可以, 因为spring发现A对象里面依赖B, 但是这个B加了@Lazy, 那么就直接先创建个代理对象, 只是代理对象里面B属性是空, 等你要用这个B对象的时候
+						 * 代理对象才去 ioc容器里面getBean去找B对象
+						 *
+						 * 再出个问题:
+						 * A对象的成员方法上不加@Async注解,属性B上加注入注解不加@Lazy,
+						 * B对象的成员方法加@Async注解, 报错吗?
+						 * 不报错, 因为流程顺序问题
+						 */
 						throw new BeanCurrentlyInCreationException(beanName,
 								"Bean with name '" + beanName + "' has been injected into other beans [" +
 								StringUtils.collectionToCommaDelimitedString(actualDependentBeans) +
@@ -1443,12 +1569,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param bw the BeanWrapper with bean instance
 	 */
 	protected void populateBean(String beanName, RootBeanDefinition mbd, @Nullable BeanWrapper bw) {
+		// 没有实例化对象
 		if (bw == null) {
+			// 有属性，则抛出 BeanCreationException 异常
 			if (mbd.hasPropertyValues()) {
 				throw new BeanCreationException(
 						mbd.getResourceDescription(), beanName, "Cannot apply property values to null instance");
 			}
-			else {
+			else {    // 没有属性，直接 return 返回
 				// Skip property population phase for null instance.
 				return;
 			}
@@ -1468,27 +1596,47 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Give any InstantiationAwareBeanPostProcessors the opportunity to modify the
 		// state of the bean before properties are set. This can be used, for example,
 		// to support styles of field injection.
-		// 实例化后
+		/**
+		 * 在设置属性之前给 InstantiationAwareBeanPostProcessors 最后一次改变 bean 的机会
+		 *
+		 * 实例化后, 属性设置之前. 重点
+		 *  hasInstantiationAwareBeanPostProcessors 判断的是 InstantiationAwareBeanPostProcessors 的实例化后钩子方法
+		 */
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
+				// 如果返回 false，代表不需要进行后续的属性设值，也不需要再经过其他的 BeanPostProcessor 的处理
 				if (!bp.postProcessAfterInstantiation(bw.getWrappedInstance(), beanName)) {
 					return;
 				}
 			}
 		}
 
+		// bean的所有属性
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
 
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
 
-		// byName或byType依赖注入
+		/**
+		 * 处理spring自带的依赖注入, 是这种, 注意是写在@Bean注解里面的
+		 *
+		 * @Bean(autowire = Autowire.BY_NAME) 会走到这里, 这个注解里面的写法 已经标记为过期了
+		 * public UserService userService() {....)
+		 *
+		 * UserService 类上面没有@Component注解, 并且他里面的一个属性类也没注解, 但是属性却可以自动注入
+		 * 但是 注意: 必须要有set方法, 原理是spring会查你有那些set方法, 然后根据set方法, 从容器中找到对应的bean, 然后注入
+		 * class UserService{private Order order; public void setOrder(Order order){this.order = order;}}
+		 *
+		 * 注意: 常规的@Autowire注解, 是AutowiredAnnotationBeanPostProcessor处理的, 要过这个if, 不一样
+		 */
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
 			// Add property values based on autowire by name if applicable.
+			// 通过名字找到所有属性值，如果是 bean 依赖，先初始化依赖的 bean。记录依赖关系
 			if (resolvedAutowireMode == AUTOWIRE_BY_NAME) {
 				autowireByName(beanName, mbd, bw, newPvs);
 			}
 			// Add property values based on autowire by type if applicable.
+			// 通过类型装配。复杂一些
 			if (resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 				autowireByType(beanName, mbd, bw, newPvs);
 			}
@@ -1500,7 +1648,22 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (pvs == null) {
 				pvs = mbd.getPropertyValues();
 			}
+			/**
+			 * 重点
+			 * 这里会处理 AutowiredAnnotationBeanPostProcessor 的postProcessMergedBeanDefinition方法, 会直接给对象的属性赋值
+			 * 	AutowiredAnnotationBeanPostProcessor 内部不会处理pvs, 直接返回了
+			 *
+			 * @Autowired @Value 注解是被 AutowiredAnnotationBeanPostProcessor 后置处理器处理
+			 * @Resource @PostConstruct、@PreDestroy 注解是被 CommonAnnotationBeanPostProcessor 这个后置处理器处理的
+			 *
+			 * 这边可以 利用 InstantiationAwareBeanPostProcessor 接口, 自己写个实现类,实现类里面处理 自己定义的注解 处理类似 @Autowire, @Resource
+			 * 注意下： Initialization 表示 初始化 （意思是对象还未生成） 。 Instantiation 表示 实例化 （意思是对象已经生成）
+			 */
 			for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
+				/**
+				 * 这里就是上方曾经提到过得对@Autowired处理的一个BeanPostProcessor了
+				 * 	它会对所有标记 @Autowired、@Value 注解的属性进行设值
+				 */
 				PropertyValues pvsToUse = bp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
 				if (pvsToUse == null) {
 					return;
@@ -1509,14 +1672,22 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}
 		}
 
+		// 依赖检查
 		boolean needsDepCheck = (mbd.getDependencyCheck() != AbstractBeanDefinition.DEPENDENCY_CHECK_NONE);
 		if (needsDepCheck) {
 			PropertyDescriptor[] filteredPds = filterPropertyDescriptorsForDependencyCheck(bw, mbd.allowCaching);
+			// 依赖检查，对应 depends-on 属性
 			checkDependencies(beanName, mbd, filteredPds, pvs);
 		}
 
 		// 进行赋值
 		if (pvs != null) {
+			/**
+			 * 把上面设置的pvs设置进去
+			 *
+			 * 如果当前bean中的beanDefiniton中设置了PropertyValues, 那么最终将是PropertyValues中的值覆盖 @Autowired
+			 * 设置 bean 实例的属性值, pvs里面如果有你定义的属性的话
+			 */
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}
@@ -1872,6 +2043,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// 初始化
 		try {
+			//初始化, 实现了 InitializingBean 接口, 有 initMethod 方法
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		}
 		catch (Throwable ex) {
@@ -1881,6 +2053,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// 初始化后 AOP
 		if (mbd == null || !mbd.isSynthetic()) {
+			/**
+			 * 初始化后, aop, @Async, 事件监听器 等就是在这里面, 重点
+			 * 还有 postProcessAfterInitialization
+			 */
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 

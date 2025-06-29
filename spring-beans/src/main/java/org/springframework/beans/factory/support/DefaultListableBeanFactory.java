@@ -1016,6 +1016,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// Iterate over a copy to allow for init methods which in turn register new bean definitions.
 		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+		// this.beanDefinitionNames 保存了所有的 beanNames
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
 		// Trigger initialization of all non-lazy singleton beans...
@@ -1024,10 +1025,22 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		this.preInstantiationPhase = true;
 		this.preInstantiationThread.set(PreInstantiation.MAIN);
 		try {
+			// 触发所有⾮懒加载单例bean的初始化
 			for (String beanName : beanNames) {
-				// 得到合并后的RootBeanDefinition，RootBeanDefinition表示不能再合并了
+
+				/**
+				 * 得到合并后的RootBeanDefinition，RootBeanDefinition表示不能再合并了
+				 * 合并父 Bean 中的配置，注意<bean id="" class="" parent="" /> 中的 parent属性, 获取bean 定义
+				 * <bean id="user" class="com.test.User" scope="prototype" abstract="true" />
+				 * <bean id="userService" class="com.test.UseServicer" parent="user" />  这个bean的没定义的属性用父的, 定义了和父不一样那用自己的
+				 */
 				RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
 
+				/**
+				 * 不是抽象BeanDefinition、是单例的
+				 * 抽象BeanDefinition不是抽象类, 抽象类不会创建bean, 但是里面bean的属性可以给其他bean继承, 其他bean把 抽象BeanDefinition 设置为parent, 最终会合并成一个新的BeanDefinition不是在原来基础上改
+				 * 非抽象 && 单例
+				 */
 				if (!mbd.isAbstract() && mbd.isSingleton()) {
 					// 这里面会用线程池来并行创建每个Bean
 					CompletableFuture<?> future = preInstantiateSingleton(beanName, mbd);
@@ -1105,7 +1118,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 		}
 
-		// 默认情况下还是走的这里，直接在当前线程上进行创建
+		/**
+		 * 非懒加载的
+		 * 默认情况下还是走的这里，直接在当前线程上进行创建
+		 */
 		if (!mbd.isLazyInit()) {
 			instantiateSingleton(beanName);
 		}

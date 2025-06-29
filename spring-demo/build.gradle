@@ -6,6 +6,8 @@ group = 'com.demo'
 version = '6.2.2-SNAPSHOT.CUSTOM'
 
 repositories {
+    mavenLocal()
+    maven { url "https://maven.aliyun.com/repository/public" }
     mavenCentral()
 }
 

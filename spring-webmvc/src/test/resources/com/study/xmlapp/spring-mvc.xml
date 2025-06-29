@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd"
+>
+	<context:annotation-config/>
+
+	<mvc:interceptors>
+		<bean class="com.study.xmlapp.interceptor.MyHandlerInterceptor"/>
+		<bean class="com.study.xmlapp.interceptor.AsyncHelloInterceptor"/>
+	</mvc:interceptors>
+
+	<!--
+		启用Spring MVC注解驱动, 表示将所有的文件，包含静态资源文件都交给spring mvc处理
+		如果不加，DispatcherServlet则无法区分请求是资源文件还是mvc的注解，而导致controller的请求报404错误
+		-->
+	<mvc:annotation-driven>
+		<!-- 配置异步支持 -->
+		<mvc:async-support task-executor="myTaskExecutor" default-timeout="30000"/>
+
+		<mvc:message-converters>
+			<!-- 返回值, 把对象转成json -->
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/>
+
+			<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+				<property name="defaultCharset" value="UTF-8"/>
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+
+	<bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
+
+	<!-- 扫描基于这个包下面的controller: com.study.xmlapp.controller -->
+	<context:component-scan base-package="com.study.xmlapp.controller" use-default-filters="false">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+
+
+	<bean id="myTaskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="4"/>
+		<property name="maxPoolSize" value="8"/>
+		<property name="queueCapacity" value="16"/>
+		<property name="threadNamePrefix" value="MyAsyncExecutor-"/>
+	</bean>
+
+</beans>
