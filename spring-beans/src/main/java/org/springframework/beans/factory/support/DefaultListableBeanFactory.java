@@ -889,15 +889,18 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		for (String beanName : beanNames) {
 
 			/**
+			 * 得到合并后的RootBeanDefinition，RootBeanDefinition表示不能再合并了
 			 * 合并父 Bean 中的配置，注意<bean id="" class="" parent="" /> 中的 parent属性, 获取bean 定义
 			 * <bean id="user" class="com.test.User" scope="prototype" abstract="true" />
 			 * <bean id="userService" class="com.test.UseServicer" parent="user" />  这个bean的没定义的属性用父的, 定义了和父不一样那用自己的
 			 */
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
 
-			// 不是抽象BeanDefinition、是单例的且不是懒加载的
-			// 抽象BeanDefinition不是抽象类, 抽象类不会创建bean, 但是里面bean的属性可以给其他bean继承, 其他bean把 抽象BeanDefinition 设置为parent, 最终会合并成一个新的BeanDefinition不是在原来基础上改
-			// 非抽象 && 单例 && 非惰性加载
+			/**
+			 * 不是抽象BeanDefinition、是单例的且不是懒加载的
+			 * 抽象BeanDefinition不是抽象类, 抽象类不会创建bean, 但是里面bean的属性可以给其他bean继承, 其他bean把 抽象BeanDefinition 设置为parent, 最终会合并成一个新的BeanDefinition不是在原来基础上改
+			 * 非抽象 && 单例 && 非惰性加载
+			 */
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
 				// 处理 FactoryBean
 				if (isFactoryBean(beanName)) {

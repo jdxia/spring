@@ -21,13 +21,14 @@ import org.studyspring.demo.bean.aop.A;
 import org.studyspring.demo.bean.aop.MyAroundAdvice;
 import org.studyspring.demo.bean.event.genericEvent.RegisterService;
 import org.studyspring.demo.bean.event.normalEvent.TestEventListener;
+import org.studyspring.demo.bean.factory.Order;
 import org.studyspring.demo.bean.transaction.MyUserService;
 import org.studyspring.demo.bean.xml.User;
 import org.studyspring.demo.config.AppConfig;
 import org.studyspring.demo.config.AsyncConfig;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-
 
 
 public class App {
@@ -41,9 +42,11 @@ public class App {
 
 //		aopTest();
 
+		testFactoryBean();
+
 //		eventTest();
 
-		transactionTest();
+//		transactionTest();
 
 //		enhancerTest();
 //		proxyFactoryTestAdvice();
@@ -60,7 +63,7 @@ public class App {
 		 * {@link JdkDynamicAopProxy#invoke(Object, Method, Object[])} 里面的 oldProxy = AopContext.setCurrentProxy(proxy);
 		 * 也有还原的
 		 */
-		 AopContext.currentProxy();
+		AopContext.currentProxy();
 
 
 		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
@@ -127,6 +130,17 @@ public class App {
 
 		System.out.println("=====================================");
 
+	}
+
+	private static void testFactoryBean() {
+		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
+
+		// &orderFactoryBean  --> orderFactoryBean  --> orderFactoryBean对象 -->有&就获取 --> orderFactoryBean对象
+		System.out.println("factoryBean对象: " + ac.getBean("&orderFactoryBean"));
+
+		// &orderFactoryBean  --> orderFactoryBean  --> orderFactoryBean对象 -->没有有&就调用 --> getObject --> Order对象
+		Order order = (Order) ac.getBean("orderFactoryBean", Order.class);
+		System.out.println("order打印: " + order);
 	}
 
 	public static Object getOriginBean(Object proxy) throws Exception {
@@ -218,7 +232,7 @@ public class App {
 		//设置这2个可能会走cglib
 		proxyFactory.setOptimize(true);
 		proxyFactory.setProxyTargetClass(true);  // 这个属性代表强制使用cglib, 注解那边也有这个属性
-		proxyFactory.setExposeProxy(true);	// 把代理对象放到threadLocal里面
+		proxyFactory.setExposeProxy(true);    // 把代理对象放到threadLocal里面
 
 		/**
 		 *  可以添加多个, 按顺序执行

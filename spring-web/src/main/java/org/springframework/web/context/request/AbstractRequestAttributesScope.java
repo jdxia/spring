@@ -39,9 +39,16 @@ public abstract class AbstractRequestAttributesScope implements Scope {
 
 	@Override
 	public Object get(String name, ObjectFactory<?> objectFactory) {
+		// 往下
 		RequestAttributes attributes = RequestContextHolder.currentRequestAttributes();
+
+		/**
+		 * {@link ServletRequestAttributes#getAttribute(String, int)}
+		 */
 		Object scopedObject = attributes.getAttribute(name, getScope());
 		if (scopedObject == null) {
+
+			// 创建Bean
 			scopedObject = objectFactory.getObject();
 			attributes.setAttribute(name, scopedObject, getScope());
 			// Retrieve object again, registering it for implicit session attribute updates.

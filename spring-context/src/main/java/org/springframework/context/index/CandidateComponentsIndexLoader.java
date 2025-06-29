@@ -86,6 +86,8 @@ public final class CandidateComponentsIndexLoader {
 		if (classLoaderToUse == null) {
 			classLoaderToUse = CandidateComponentsIndexLoader.class.getClassLoader();
 		}
+
+		// doLoadIndex 往下
 		return cache.computeIfAbsent(classLoaderToUse, CandidateComponentsIndexLoader::doLoadIndex);
 	}
 
@@ -101,6 +103,7 @@ public final class CandidateComponentsIndexLoader {
 		}
 
 		try {
+			// COMPONENTS_RESOURCE_LOCATION = "META-INF/spring.components"
 			Enumeration<URL> urls = classLoader.getResources(COMPONENTS_RESOURCE_LOCATION);
 			if (!urls.hasMoreElements()) {
 				return null;

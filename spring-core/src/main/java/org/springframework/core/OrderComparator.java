@@ -77,6 +77,7 @@ public class OrderComparator implements Comparator<Object> {
 		// PriorityOrdered 优先级最高先进行比较
 		boolean p1 = (o1 instanceof PriorityOrdered);
 		boolean p2 = (o2 instanceof PriorityOrdered);
+		// 如果一个实现了, 另一个没有实现 这个是 -1
 		if (p1 && !p2) {
 			return -1;
 		}

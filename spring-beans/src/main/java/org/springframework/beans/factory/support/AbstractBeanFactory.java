@@ -247,6 +247,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		 * 获取beanName，处理两种情况，一个是前面说的 FactoryBean(前面带 ‘&’)，再一个这个方法是可以根据别名来获取Bean的，所以在这里是要转换成最正统的BeanName
 		 * 主要逻辑就是如果是FactoryBean就把&去掉如果是别名就把根据别名获取真实名称
 		 * 如果 name 是 alias ，则获取对应映射的 beanName, 如果userService的别名为userServiceAlias，name为userServiceAlias，处理之后为原来的userService(根据别名查找到原来的Bean名称)
+		 *
+		 *  name为&myFactoryBean，beanName则为myFactoryBean
+		 *  name为myFactoryBean，beanName也为myFactoryBean
+		 *  如果name为别名，那么beanName则为对应的主名字
 		 */
 		final String beanName = transformedBeanName(name);
 
@@ -270,6 +274,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 
 			/**
+			 *  factory bean核心
 			 * 这里如果是普通Bean 的话，直接返回
 			 * 处理FactoryBean相关，核心方法
 			 * 完成 FactoryBean 的相关处理，并用来获取 FactoryBean 的处理结果
@@ -315,7 +320,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 			// 如果不是仅仅做类型检查则是创建bean，这里需要记录
 			if (!typeCheckOnly) {
-				// typeCheckOnly 为 false，将当前 beanName 放入一个 alreadyCreated 的 Set 集合中。
+				// typeCheckOnly 为 false，将当前 beanName 放入一个 alreadyCreated 的 Set 集合中
 				markBeanAsCreated(beanName);
 			}
 
@@ -1135,6 +1140,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 	@Override
 	public boolean isFactoryBean(String name) throws NoSuchBeanDefinitionException {
+		// beanName: myFactoryBean
 		String beanName = transformedBeanName(name);
 		Object beanInstance = getSingleton(beanName, false);
 		if (beanInstance != null) {
@@ -1145,6 +1151,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			// No bean definition found in this factory -> delegate to parent.
 			return ((ConfigurableBeanFactory) getParentBeanFactory()).isFactoryBean(name);
 		}
+
+		// 往下
 		return isFactoryBean(beanName, getMergedLocalBeanDefinition(beanName));
 	}
 
@@ -1684,6 +1692,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	protected boolean isFactoryBean(String beanName, RootBeanDefinition mbd) {
 		Boolean result = mbd.isFactoryBean;
 		if (result == null) {
+			// 判断类型是不是 FactoryBean
 			Class<?> beanType = predictBeanType(beanName, mbd, FactoryBean.class);
 			result = (beanType != null && FactoryBean.class.isAssignableFrom(beanType));
 			mbd.isFactoryBean = result;
@@ -1921,10 +1930,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				//获取beanName合并后的本地RootBeanDefintiond对象
 				mbd = getMergedLocalBeanDefinition(beanName);
 			}
-			//synthetic 为true, 表示这个bean不是正常的一个bean, 可能只是起到辅助作用的, 所以这种bean就不用去执行postprocess
-			//是否是'synthetic'标记：mbd不为null && 返回此bean定义是否是"synthetic"【一般是指只有AOP相关的prointCut配置或者
-			// 		Advice配置才会将 synthetic设置为true】
+			/**
+			 * synthetic 为true, 表示这个bean不是正常的一个bean, 可能只是起到辅助作用的, 所以这种bean就不用去执行postprocess
+			 * 是否是 'synthetic' 标记：mbd不为null && 返回此bean定义是否是"synthetic"【一般是指只有AOP相关的 prointCut 配置或者
+			 * 	Advice配置才会将 synthetic设置为true】
+			 */
 			boolean synthetic = (mbd != null && mbd.isSynthetic());
+
 			//从BeanFactory对象中获取管理的对象.如果不是synthetic会对其对象进行该工厂的后置处理
 			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
 		}

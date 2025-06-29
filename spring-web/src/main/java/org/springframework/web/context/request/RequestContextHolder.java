@@ -102,6 +102,7 @@ public abstract class RequestContextHolder  {
 	 */
 	@Nullable
 	public static RequestAttributes getRequestAttributes() {
+		// ThreadLocal<RequestAttributes> requestAttributesHolder
 		RequestAttributes attributes = requestAttributesHolder.get();
 		if (attributes == null) {
 			attributes = inheritableRequestAttributesHolder.get();

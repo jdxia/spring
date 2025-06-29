@@ -109,6 +109,9 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	@Nullable
 	private MetadataReaderFactory metadataReaderFactory;
 
+	/**
+	 * {@link ClassPathScanningCandidateComponentProvider#setResourceLoader(ResourceLoader)}
+	 */
 	@Nullable
 	private CandidateComponentsIndex componentsIndex;
 
@@ -266,6 +269,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	public void setResourceLoader(@Nullable ResourceLoader resourceLoader) {
 		this.resourcePatternResolver = ResourcePatternUtils.getResourcePatternResolver(resourceLoader);
 		this.metadataReaderFactory = new CachingMetadataReaderFactory(resourceLoader);
+		// loadIndex 这里, 利用classloader 去加载那个文件
 		this.componentsIndex = CandidateComponentsIndexLoader.loadIndex(this.resourcePatternResolver.getClassLoader());
 	}
 
@@ -315,12 +319,17 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		/**
 		 * 当前项目有没有spring.components这个文件, 这个文件主要负责加快spring bean索引的, 告诉spring那些类上是啥
 		 * com.test.UserService=org.springframework.stereotype.Component 内容是这样的
+		 * 如果有就不进行扫描了, 但是这个类还是要加 @Component, 只是减少了扫描
 		 *
 		 * 测试用例: {@link org.springframework.context.annotation.ClassPathScanningCandidateComponentProviderTests#defaultsWithIndex()}
 		 * 解析 spring.components文件
 		 */
 		if (this.componentsIndex != null && indexSupportsIncludeFilters()) {
-			// 不是重点
+			/**
+			 * 可以看下 componentsIndex 怎么创建的
+			 *
+			 * 不是重点
+			 */
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
 		}
 		else {
@@ -386,17 +395,25 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
 			Set<String> types = new HashSet<>();
+			// 拿到 includeFilters
 			for (TypeFilter filter : this.includeFilters) {
 				String stereotype = extractStereotype(filter);
 				if (stereotype == null) {
 					throw new IllegalArgumentException("Failed to extract stereotype from " + filter);
 				}
+
+				/**
+				 * basePackage 要扫描的包
+				 * stereotype  要扫描的注解
+				 * getCandidateTypes 会进行过滤
+				 */
 				types.addAll(index.getCandidateTypes(basePackage, stereotype));
 			}
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
 			for (String type : types) {
 				MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(type);
+				// 过滤
 				if (isCandidateComponent(metadataReader)) {
 					ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
 					sbd.setSource(metadataReader.getResource());

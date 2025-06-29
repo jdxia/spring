@@ -32,6 +32,10 @@ public class SimpleBeanTargetSource extends AbstractBeanFactoryBasedTargetSource
 
 	@Override
 	public Object getTarget() throws Exception {
+		/**
+		 * 在 getBean 里面实现 scope 逻辑, 判断他的作用域
+		 * 比如原来的类是 requestBean, 这边 getTargetBeanName 是 scopedTarget.requestBean
+		 */
 		return getBeanFactory().getBean(getTargetBeanName());
 	}
 
