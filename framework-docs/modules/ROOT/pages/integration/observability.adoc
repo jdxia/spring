@@ -270,6 +270,7 @@ By default, the following `KeyValues` are created:
 == HTTP Client Instrumentation
 
 HTTP client exchange observations are created with the name `"http.client.requests"` for blocking and reactive clients.
+This observation measures the entire HTTP request/response exchange, from connection establishment up to body deserialization.
 Unlike their server counterparts, the instrumentation is implemented directly in the client so the only required step is to configure an `ObservationRegistry` on the client.
 
 [[observability.http-client.resttemplate]]
@@ -285,7 +286,7 @@ Instrumentation uses the `org.springframework.http.client.observation.ClientRequ
 |===
 |Name | Description
 |`method` _(required)_|Name of the HTTP request method or `"none"` if not a well-known method.
-|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. Only the path part of the URI is considered.
+|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. The protocol, host and port part of the URI are not considered.
 |`client.name` _(required)_|Client name derived from the request URI host.
 |`status` _(required)_|HTTP response raw status code, or `"IO_ERROR"` in case of `IOException`, or `"CLIENT_ERROR"` if no response was received.
 |`outcome` _(required)_|Outcome of the HTTP client exchange.
@@ -313,7 +314,7 @@ Instrumentation uses the `org.springframework.http.client.observation.ClientRequ
 |===
 |Name | Description
 |`method` _(required)_|Name of the HTTP request method or `"none"` if the request could not be created.
-|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. Only the path part of the URI is considered.
+|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. The protocol, host and port part of the URI are not considered.
 |`client.name` _(required)_|Client name derived from the request URI host.
 |`status` _(required)_|HTTP response raw status code, or `"IO_ERROR"` in case of `IOException`, or `"CLIENT_ERROR"` if no response was received.
 |`outcome` _(required)_|Outcome of the HTTP client exchange.
@@ -342,7 +343,7 @@ Instrumentation uses the `org.springframework.web.reactive.function.client.Clien
 |===
 |Name | Description
 |`method` _(required)_|Name of the HTTP request method or `"none"` if not a well-known method.
-|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. Only the path part of the URI is considered.
+|`uri` _(required)_|URI template used for HTTP request, or `"none"` if none was provided. The protocol, host and port part of the URI are not considered.
 |`client.name` _(required)_|Client name derived from the request URI host.
 |`status` _(required)_|HTTP response raw status code, or `"IO_ERROR"` in case of `IOException`, or `"CLIENT_ERROR"` if no response was received.
 |`outcome` _(required)_|Outcome of the HTTP client exchange.

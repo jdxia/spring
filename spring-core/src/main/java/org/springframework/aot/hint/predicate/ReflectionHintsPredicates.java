@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,9 +183,7 @@ public class ReflectionHintsPredicates {
 	}
 
 	/**
-	 * Return a predicate that checks whether a reflection hint is registered for the given field.
-	 * By default, unsafe or write access is not considered.
-	 * <p>The returned type exposes additional methods that refine the predicate behavior.
+	 * Return a predicate that checks whether a reflective field access hint is registered for the given field.
 	 * @param field the field
 	 * @return the {@link RuntimeHints} predicate
 	 */

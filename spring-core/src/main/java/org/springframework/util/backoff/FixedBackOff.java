@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ public class FixedBackOff implements BackOff {
 	 */
 	public static final long UNLIMITED_ATTEMPTS = Long.MAX_VALUE;
 
+
 	private long interval = DEFAULT_INTERVAL;
 
 	private long maxAttempts = UNLIMITED_ATTEMPTS;
@@ -48,7 +49,7 @@ public class FixedBackOff implements BackOff {
 	}
 
 	/**
-	 * Create an instance.
+	 * Create an instance with the supplied settings.
 	 * @param interval the interval between two attempts
 	 * @param maxAttempts the maximum number of attempts
 	 */
@@ -73,18 +74,19 @@ public class FixedBackOff implements BackOff {
 	}
 
 	/**
-	 * Set the maximum number of attempts in milliseconds.
+	 * Set the maximum number of attempts.
 	 */
 	public void setMaxAttempts(long maxAttempts) {
 		this.maxAttempts = maxAttempts;
 	}
 
 	/**
-	 * Return the maximum number of attempts in milliseconds.
+	 * Return the maximum number of attempts.
 	 */
 	public long getMaxAttempts() {
 		return this.maxAttempts;
 	}
+
 
 	@Override
 	public BackOffExecution start() {

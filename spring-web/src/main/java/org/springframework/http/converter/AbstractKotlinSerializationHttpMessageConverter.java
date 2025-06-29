@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,6 +75,11 @@ public abstract class AbstractKotlinSerializationHttpMessageConverter<T extends 
 	protected AbstractKotlinSerializationHttpMessageConverter(T format, MediaType... supportedMediaTypes) {
 		super(supportedMediaTypes);
 		this.format = format;
+	}
+
+	@Override
+	public List<MediaType> getSupportedMediaTypes(Class<?> clazz) {
+		return getSupportedMediaTypes();
 	}
 
 	@Override
@@ -150,24 +156,25 @@ public abstract class AbstractKotlinSerializationHttpMessageConverter<T extends 
 			Assert.notNull(method, "Method must not be null");
 			if (KotlinDetector.isKotlinType(method.getDeclaringClass())) {
 				KFunction<?> function = ReflectJvmMapping.getKotlinFunction(method);
-				Assert.notNull(function, "Kotlin function must not be null");
-				KType type = (parameter.getParameterIndex() == -1 ? function.getReturnType() :
-						KCallables.getValueParameters(function).get(parameter.getParameterIndex()).getType());
-				KSerializer<Object> serializer = this.kTypeSerializerCache.get(type);
-				if (serializer == null) {
-					try {
-						serializer = SerializersKt.serializerOrNull(this.format.getSerializersModule(), type);
-					}
-					catch (IllegalArgumentException ignored) {
-					}
-					if (serializer != null) {
-						if (hasPolymorphism(serializer.getDescriptor(), new HashSet<>())) {
-							return null;
+				if (function != null) {
+					KType type = (parameter.getParameterIndex() == -1 ? function.getReturnType() :
+							KCallables.getValueParameters(function).get(parameter.getParameterIndex()).getType());
+					KSerializer<Object> serializer = this.kTypeSerializerCache.get(type);
+					if (serializer == null) {
+						try {
+							serializer = SerializersKt.serializerOrNull(this.format.getSerializersModule(), type);
 						}
-						this.kTypeSerializerCache.put(type, serializer);
+						catch (IllegalArgumentException ignored) {
+						}
+						if (serializer != null) {
+							if (hasPolymorphism(serializer.getDescriptor(), new HashSet<>())) {
+								return null;
+							}
+							this.kTypeSerializerCache.put(type, serializer);
+						}
 					}
+					return serializer;
 				}
-				return serializer;
 			}
 		}
 		Type type = resolvableType.getType();

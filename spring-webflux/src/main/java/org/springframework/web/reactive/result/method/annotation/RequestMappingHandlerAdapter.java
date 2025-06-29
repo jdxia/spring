@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -373,8 +373,8 @@ public class RequestMappingHandlerAdapter
 		@Override
 		public boolean test(HandlerMethod handlerMethod) {
 			Class<?> returnType = handlerMethod.getReturnType().getParameterType();
-			return (this.adapterRegistry.getAdapter(returnType) == null
-					&& !KotlinDetector.isSuspendingFunction(handlerMethod.getMethod()));
+			return (this.adapterRegistry.getAdapter(returnType) == null &&
+					!KotlinDetector.isSuspendingFunction(handlerMethod.getMethod()));
 		}
 	}
 

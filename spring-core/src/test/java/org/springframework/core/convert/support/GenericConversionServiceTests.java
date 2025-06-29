@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -565,6 +565,35 @@ class GenericConversionServiceTests {
 		assertThat(conversionService.convert("test", TypeDescriptor.valueOf(String.class), new TypeDescriptor(getClass().getField("integerCollection")))).isEqualTo(Collections.singleton("testX"));
 	}
 
+	@Test
+	void stringListToListOfSubclassOfUnboundGenericClass() {
+		conversionService.addConverter(new StringListToAListConverter());
+		conversionService.addConverter(new StringListToBListConverter());
+
+		List<?> aList = (List<?>) conversionService.convert(List.of("foo"),
+				TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(String.class)),
+				TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(ARaw.class)));
+		assertThat(aList).allMatch(e -> e instanceof ARaw);
+
+		List<?> bList = (List<?>) conversionService.convert(List.of("foo"),
+				TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(String.class)),
+				TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(BRaw.class)));
+		assertThat(bList).allMatch(e -> e instanceof BRaw);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void stringToListOfMapConverterWithFallbackMatch() {
+		conversionService.addConverter(new StringToListOfMapConverter());
+
+		List<Map<String, Object>> result = (List<Map<String, Object>>) conversionService.convert("foo",
+				TypeDescriptor.valueOf(String.class),
+				TypeDescriptor.collection(List.class, TypeDescriptor.valueOf(Map.class))
+		);
+
+		assertThat("foo").isEqualTo(result.get(0).get("bar"));
+	}
+
 
 	@ExampleAnnotation(active = true)
 	public String annotatedString;
@@ -741,6 +770,7 @@ class GenericConversionServiceTests {
 			return converter.getMatchAttempts();
 		}
 	}
+
 
 	private interface MyEnumBaseInterface {
 		String getBaseCode();
@@ -923,4 +953,44 @@ class GenericConversionServiceTests {
 			return Color.decode(source.substring(0, 6));
 		}
 	}
+
+
+	private static class GenericBaseClass<T> {
+	}
+
+	@SuppressWarnings("rawtypes")
+	private static class ARaw extends GenericBaseClass {
+	}
+
+	@SuppressWarnings("rawtypes")
+	private static class BRaw extends GenericBaseClass {
+	}
+
+
+	private static class StringListToAListConverter implements Converter<List<String>, List<ARaw>> {
+
+		@Override
+		public List<ARaw> convert(List<String> source) {
+			return List.of(new ARaw());
+		}
+	}
+
+
+	private static class StringListToBListConverter implements Converter<List<String>, List<BRaw>> {
+
+		@Override
+		public List<BRaw> convert(List<String> source) {
+			return List.of(new BRaw());
+		}
+	}
+
+
+	private static class StringToListOfMapConverter implements Converter<String, List<? extends Map<String, ?>>> {
+
+		@Override
+		public List<? extends Map<String, ?>> convert(String source) {
+			return List.of(Map.of("bar", source));
+		}
+	}
+
 }

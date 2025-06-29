@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,8 +144,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	private final Set<Class<?>> ignoredDependencyTypes = new HashSet<>();
 
 	/**
-	 * Dependency interfaces to ignore on dependency check and autowire, as Set of
-	 * Class objects. By default, only the BeanFactory interface is ignored.
+	 * Dependency interfaces to ignore on dependency check and autowire, as a Set
+	 * of Class objects.
+	 * <p>By default, the {@code BeanNameAware}, {@code BeanFactoryAware}, and
+	 * {@code BeanClassLoaderAware} interfaces are ignored.
 	 */
 	private final Set<Class<?>> ignoredDependencyInterfaces = new HashSet<>();
 
@@ -285,11 +287,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	/**
 	 * Ignore the given dependency interface for autowiring.
 	 * <p>This will typically be used by application contexts to register
-	 * dependencies that are resolved in other ways, like BeanFactory through
-	 * BeanFactoryAware or ApplicationContext through ApplicationContextAware.
-	 * <p>By default, only the BeanFactoryAware interface is ignored.
+	 * dependencies that are resolved in other ways, like {@code BeanFactory}
+	 * through {@code BeanFactoryAware} or {@code ApplicationContext} through
+	 * {@code ApplicationContextAware}.
+	 * <p>By default, the {@code BeanNameAware}, {@code BeanFactoryAware}, and
+	 * {@code BeanClassLoaderAware} interfaces are ignored.
 	 * For further types to ignore, invoke this method for each type.
+	 * @see org.springframework.beans.factory.BeanNameAware
 	 * @see org.springframework.beans.factory.BeanFactoryAware
+	 * @see org.springframework.beans.factory.BeanClassLoaderAware
 	 * @see org.springframework.context.ApplicationContextAware
 	 */
 	public void ignoreDependencyInterface(Class<?> ifc) {
@@ -1008,7 +1014,19 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	@Nullable
 	private FactoryBean<?> getSingletonFactoryBeanForTypeCheck(String beanName, RootBeanDefinition mbd) {
-		this.singletonLock.lock();
+		Boolean lockFlag = isCurrentThreadAllowedToHoldSingletonLock();
+		if (lockFlag == null) {
+			this.singletonLock.lock();
+		}
+		else {
+			boolean locked = (lockFlag && this.singletonLock.tryLock());
+			if (!locked) {
+				// Avoid shortcut FactoryBean instance but allow for subsequent type-based resolution.
+				resolveBeanClass(mbd, beanName);
+				return null;
+			}
+		}
+
 		try {
 			BeanWrapper bw = this.factoryBeanInstanceCache.get(beanName);
 			if (bw != null) {

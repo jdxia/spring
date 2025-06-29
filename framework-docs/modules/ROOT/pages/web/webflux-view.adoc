@@ -1,5 +1,6 @@
 [[webflux-view]]
 = View Technologies
+
 [.small]#xref:web/webmvc-view.adoc[See equivalent in the Servlet stack]#
 
 The rendering of views in Spring WebFlux is pluggable. Whether you decide to
@@ -224,9 +225,9 @@ The following table shows the templating libraries that we have tested on differ
 |Scripting Library |Scripting Engine
 |https://handlebarsjs.com/[Handlebars] |https://openjdk.java.net/projects/nashorn/[Nashorn]
 |https://mustache.github.io/[Mustache] |https://openjdk.java.net/projects/nashorn/[Nashorn]
-|https://facebook.github.io/react/[React] |https://openjdk.java.net/projects/nashorn/[Nashorn]
-|https://www.embeddedjs.com/[EJS] |https://openjdk.java.net/projects/nashorn/[Nashorn]
-|https://www.stuartellis.name/articles/erb/[ERB] |https://www.jruby.org[JRuby]
+|https://react.dev/[React] |https://openjdk.java.net/projects/nashorn/[Nashorn]
+|https://ejs.co/[EJS] |https://openjdk.java.net/projects/nashorn/[Nashorn]
+|https://docs.ruby-lang.org/en/master/ERB.html[ERB] |https://www.jruby.org[JRuby]
 |https://docs.python.org/2/library/string.html#template-strings[String templates] |https://www.jython.org/[Jython]
 |https://github.com/sdeleuze/kotlin-script-templating[Kotlin Script templating] |{kotlin-site}[Kotlin]
 |===

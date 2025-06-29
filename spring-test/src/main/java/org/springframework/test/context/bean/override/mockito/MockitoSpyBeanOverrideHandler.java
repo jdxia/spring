@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,15 +48,13 @@ class MockitoSpyBeanOverrideHandler extends AbstractMockitoBeanOverrideHandler {
 			new SpringAopBypassingVerificationStartedListener();
 
 
-	MockitoSpyBeanOverrideHandler(Field field, ResolvableType typeToSpy, MockitoSpyBean spyAnnotation) {
-		this(field, typeToSpy, (StringUtils.hasText(spyAnnotation.name()) ? spyAnnotation.name() : null),
-				spyAnnotation.reset());
+	MockitoSpyBeanOverrideHandler(ResolvableType typeToSpy, MockitoSpyBean spyBean) {
+		this(null, typeToSpy, spyBean);
 	}
 
-	MockitoSpyBeanOverrideHandler(Field field, ResolvableType typeToSpy, @Nullable String beanName,
-			MockReset reset) {
-
-		super(field, typeToSpy, beanName, BeanOverrideStrategy.WRAP, reset);
+	MockitoSpyBeanOverrideHandler(@Nullable Field field, ResolvableType typeToSpy, MockitoSpyBean spyBean) {
+		super(field, typeToSpy, (StringUtils.hasText(spyBean.name()) ? spyBean.name() : null),
+				spyBean.contextName(), BeanOverrideStrategy.WRAP, spyBean.reset());
 		Assert.notNull(typeToSpy, "typeToSpy must not be null");
 	}
 

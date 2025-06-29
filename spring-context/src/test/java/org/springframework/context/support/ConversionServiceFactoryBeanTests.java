@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ class ConversionServiceFactoryBeanTests {
 		converters.add(new ConverterFactory<String, Bar>() {
 			@Override
 			public <T extends Bar> Converter<String, T> getConverter(Class<T> targetType) {
-				return new Converter<> () {
+				return new Converter<>() {
 					@SuppressWarnings("unchecked")
 					@Override
 					public T convert(String source) {

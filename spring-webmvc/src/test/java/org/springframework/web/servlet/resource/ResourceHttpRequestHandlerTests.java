@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -333,6 +333,8 @@ class ResourceHttpRequestHandlerTests {
 			this.handler.handleRequest(this.request, this.response);
 
 			assertThat(this.response.getStatus()).isEqualTo(416);
+			// MockHttpServletResponse does not reset content type in 6.2.x
+			//assertThat(this.response.getHeaderNames()).doesNotContain(HttpHeaders.CONTENT_TYPE);
 			assertThat(this.response.getHeader("Content-Range")).isEqualTo("bytes */10");
 			assertThat(this.response.getHeader("Accept-Ranges")).isEqualTo("bytes");
 			assertThat(this.response.getHeaders("Accept-Ranges")).hasSize(1);
@@ -479,11 +481,13 @@ class ResourceHttpRequestHandlerTests {
 
 		@Test
 		void shouldRespondWithNotModifiedWhenModifiedSince() throws Exception {
+			this.handler.setCacheSeconds(3600);
 			this.handler.afterPropertiesSet();
 			this.request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, "foo.css");
 			this.request.addHeader("If-Modified-Since", resourceLastModified("test/foo.css"));
 			this.handler.handleRequest(this.request, this.response);
 			assertThat(this.response.getStatus()).isEqualTo(HttpServletResponse.SC_NOT_MODIFIED);
+			assertThat(this.response.getHeader("Cache-Control")).isEqualTo("max-age=3600");
 		}
 
 		@Test
@@ -498,12 +502,14 @@ class ResourceHttpRequestHandlerTests {
 
 		@Test
 		void shouldRespondWithNotModifiedWhenEtag() throws Exception {
+			this.handler.setCacheSeconds(3600);
 			this.handler.setEtagGenerator(resource -> "testEtag");
 			this.handler.afterPropertiesSet();
 			this.request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, "foo.css");
 			this.request.addHeader("If-None-Match", "\"testEtag\"");
 			this.handler.handleRequest(this.request, this.response);
 			assertThat(this.response.getStatus()).isEqualTo(HttpServletResponse.SC_NOT_MODIFIED);
+			assertThat(this.response.getHeader("Cache-Control")).isEqualTo("max-age=3600");
 		}
 
 		@Test

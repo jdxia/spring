@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -74,6 +75,9 @@ public class HttpRequestValues {
 
 	@Nullable
 	private final Object bodyValue;
+
+	@Nullable
+	private ParameterizedTypeReference<?> bodyValueType;
 
 
 	/**
@@ -177,6 +181,15 @@ public class HttpRequestValues {
 		return this.bodyValue;
 	}
 
+	/**
+	 * Return the type for the {@linkplain #getBodyValue() body value}.
+	 * @since 6.2.7
+	 */
+	@Nullable
+	public ParameterizedTypeReference<?> getBodyValueType() {
+		return this.bodyValueType;
+	}
+
 
 	public static Builder builder() {
 		return new Builder();
@@ -252,6 +265,9 @@ public class HttpRequestValues {
 
 		@Nullable
 		private Object bodyValue;
+
+		@Nullable
+		private ParameterizedTypeReference<?> bodyValueType;
 
 		/**
 		 * Set the HTTP method for the request.
@@ -389,6 +405,15 @@ public class HttpRequestValues {
 			this.bodyValue = bodyValue;
 		}
 
+		/**
+		 * Variant of {@link #setBodyValue(Object)} with the body type.
+		 * @since 6.2.7
+		 */
+		public void setBodyValue(@Nullable Object bodyValue, @Nullable ParameterizedTypeReference<?> valueType) {
+			setBodyValue(bodyValue);
+			this.bodyValueType = valueType;
+		}
+
 
 		// Implementation of {@link Metadata} methods
 
@@ -465,9 +490,14 @@ public class HttpRequestValues {
 			Map<String, Object> attributes = (this.attributes != null ?
 					new HashMap<>(this.attributes) : Collections.emptyMap());
 
-			return createRequestValues(
+			HttpRequestValues requestValues = createRequestValues(
 					this.httpMethod, uri, uriBuilderFactory, uriTemplate, uriVars,
 					headers, cookies, attributes, bodyValue);
+
+			// In 6.2.x only, temporarily work around protected methods
+			requestValues.bodyValueType = this.bodyValueType;
+
+			return requestValues;
 		}
 
 		protected boolean hasParts() {
@@ -492,16 +522,14 @@ public class HttpRequestValues {
 				String uriTemplate, Map<String, String> uriVars, MultiValueMap<String, String> requestParams) {
 
 			UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uriTemplate);
-			int i = 0;
 			for (Map.Entry<String, List<String>> entry : requestParams.entrySet()) {
-				String nameVar = "queryParam" + i;
+				String nameVar = "queryParam-" + entry.getKey().replace(":", "%3A"); // suppress treatment as regex
 				uriVars.put(nameVar, entry.getKey());
 				for (int j = 0; j < entry.getValue().size(); j++) {
 					String valueVar = nameVar + "[" + j + "]";
 					uriVars.put(valueVar, entry.getValue().get(j));
 					uriComponentsBuilder.queryParam("{" + nameVar + "}", "{" + valueVar + "}");
 				}
-				i++;
 			}
 			return uriComponentsBuilder.build().toUriString();
 		}

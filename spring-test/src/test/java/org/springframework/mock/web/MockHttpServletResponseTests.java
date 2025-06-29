@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +84,18 @@ class MockHttpServletResponseTests {
 		"enigma"
 	})
 	void setHeaderWithNullValue(String headerName) {
+		response.setHeader(headerName, null);
+		assertThat(response.containsHeader(headerName)).isFalse();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+			CONTENT_TYPE,
+			CONTENT_LANGUAGE,
+			"X-Test-Header"
+	})
+	void removeHeaderIfNullValue(String headerName) {
+		response.addHeader(headerName, "test");
 		response.setHeader(headerName, null);
 		assertThat(response.containsHeader(headerName)).isFalse();
 	}
@@ -627,6 +639,14 @@ class MockHttpServletResponseTests {
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.getWriter().write(content);
 		assertThat(response.getContentAsString()).isEqualTo(content);
+	}
+
+	@Test // gh-34488
+	void shouldAddMultipleContentLanguage() {
+		response.addHeader("Content-Language", "en");
+		response.addHeader("Content-Language", "fr");
+		assertThat(response.getHeaders("Content-Language")).contains("en", "fr");
+		assertThat(response.getLocale()).isEqualTo(Locale.ENGLISH);
 	}
 
 }

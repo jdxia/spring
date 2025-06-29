@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package org.springframework.web.reactive.result.method.annotation;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -43,10 +44,11 @@ import org.springframework.web.server.ServerWebExchange;
  */
 public class ExtendedWebExchangeDataBinder extends WebExchangeDataBinder {
 
-	private static final Set<String> FILTERED_HEADER_NAMES = Set.of("Priority");
+	private static final Set<String> FILTERED_HEADER_NAMES = Set.of("accept", "authorization", "connection",
+			"cookie", "from", "host", "origin", "priority", "range", "referer", "upgrade");
 
 
-	private Predicate<String> headerPredicate = name -> !FILTERED_HEADER_NAMES.contains(name);
+	private Predicate<String> headerPredicate = name -> !FILTERED_HEADER_NAMES.contains(name.toLowerCase(Locale.ROOT));
 
 
 	public ExtendedWebExchangeDataBinder(@Nullable Object target, String objectName) {

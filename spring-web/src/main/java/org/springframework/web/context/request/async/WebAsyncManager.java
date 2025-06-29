@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.async.DeferredResult.DeferredResultHandler;
+import org.springframework.web.util.DisconnectedClientHelper;
 
 /**
  * The central class for managing asynchronous request processing, mainly intended
@@ -350,6 +351,10 @@ public final class WebAsyncManager {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Servlet container error notification for " + formatUri(this.asyncWebRequest) + ": " + ex);
 			}
+			if (DisconnectedClientHelper.isClientDisconnectedException(ex)) {
+				ex = new AsyncRequestNotUsableException(
+						"Servlet container error notification for disconnected client", ex);
+			}
 			Object result = interceptorChain.triggerAfterError(this.asyncWebRequest, callable, ex);
 			result = (result != CallableProcessingInterceptor.RESULT_NONE ? result : ex);
 			setConcurrentResultAndDispatch(result);
@@ -380,36 +385,6 @@ public final class WebAsyncManager {
 		catch (Throwable ex) {
 			Object result = interceptorChain.applyPostProcess(this.asyncWebRequest, callable, ex);
 			setConcurrentResultAndDispatch(result);
-		}
-	}
-
-	private void setConcurrentResultAndDispatch(@Nullable Object result) {
-		Assert.state(this.asyncWebRequest != null, "AsyncWebRequest must not be null");
-		synchronized (WebAsyncManager.this) {
-			if (!this.state.compareAndSet(State.ASYNC_PROCESSING, State.RESULT_SET)) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Async result already set: [" + this.state.get() +
-							"], ignored result for " + formatUri(this.asyncWebRequest));
-				}
-				return;
-			}
-
-			this.concurrentResult = result;
-			if (logger.isDebugEnabled()) {
-				logger.debug("Async result set for " + formatUri(this.asyncWebRequest));
-			}
-
-			if (this.asyncWebRequest.isAsyncComplete()) {
-				if (logger.isDebugEnabled()) {
-					logger.debug("Async request already completed for " + formatUri(this.asyncWebRequest));
-				}
-				return;
-			}
-
-			if (logger.isDebugEnabled()) {
-				logger.debug("Performing async dispatch for " + formatUri(this.asyncWebRequest));
-			}
-			this.asyncWebRequest.dispatch();
 		}
 	}
 
@@ -445,7 +420,7 @@ public final class WebAsyncManager {
 		}
 
 		List<DeferredResultProcessingInterceptor> interceptors = new ArrayList<>();
-		interceptors.add(deferredResult.getInterceptor());
+		interceptors.add(deferredResult.getLifecycleInterceptor());
 		interceptors.addAll(this.deferredResultInterceptors.values());
 		interceptors.add(timeoutDeferredResultInterceptor);
 
@@ -457,6 +432,11 @@ public final class WebAsyncManager {
 			}
 			try {
 				interceptorChain.triggerAfterTimeout(this.asyncWebRequest, deferredResult);
+				synchronized (WebAsyncManager.this) {
+					// If application thread set the DeferredResult first in a race,
+					// we must still not return until setConcurrentResultAndDispatch is done
+					return;
+				}
 			}
 			catch (Throwable ex) {
 				setConcurrentResultAndDispatch(ex);
@@ -467,11 +447,17 @@ public final class WebAsyncManager {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Servlet container error notification for " + formatUri(this.asyncWebRequest));
 			}
+			if (DisconnectedClientHelper.isClientDisconnectedException(ex)) {
+				ex = new AsyncRequestNotUsableException(
+						"Servlet container error notification for disconnected client", ex);
+			}
 			try {
-				if (!interceptorChain.triggerAfterError(this.asyncWebRequest, deferredResult, ex)) {
+				interceptorChain.triggerAfterError(this.asyncWebRequest, deferredResult, ex);
+				synchronized (WebAsyncManager.this) {
+					// If application thread set the DeferredResult first in a race,
+					// we must still not return until setConcurrentResultAndDispatch is done
 					return;
 				}
-				deferredResult.setErrorResult(ex);
 			}
 			catch (Throwable interceptorEx) {
 				setConcurrentResultAndDispatch(interceptorEx);
@@ -510,6 +496,36 @@ public final class WebAsyncManager {
 		this.asyncWebRequest.startAsync();
 	}
 
+	private void setConcurrentResultAndDispatch(@Nullable Object result) {
+		Assert.state(this.asyncWebRequest != null, "AsyncWebRequest must not be null");
+		synchronized (WebAsyncManager.this) {
+			if (!this.state.compareAndSet(State.ASYNC_PROCESSING, State.RESULT_SET)) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Async result already set: [" + this.state.get() + "], " +
+							"ignored result for " + formatUri(this.asyncWebRequest));
+				}
+				return;
+			}
+
+			this.concurrentResult = result;
+			if (logger.isDebugEnabled()) {
+				logger.debug("Async result set for " + formatUri(this.asyncWebRequest));
+			}
+
+			if (this.asyncWebRequest.isAsyncComplete()) {
+				if (logger.isDebugEnabled()) {
+					logger.debug("Async request already completed for " + formatUri(this.asyncWebRequest));
+				}
+				return;
+			}
+
+			if (logger.isDebugEnabled()) {
+				logger.debug("Performing async dispatch for " + formatUri(this.asyncWebRequest));
+			}
+			this.asyncWebRequest.dispatch();
+		}
+	}
+
 	private static String formatUri(AsyncWebRequest asyncWebRequest) {
 		HttpServletRequest request = asyncWebRequest.getNativeRequest(HttpServletRequest.class);
 		return (request != null ? "\"" + request.getRequestURI() + "\"" : "servlet container");
@@ -519,13 +535,13 @@ public final class WebAsyncManager {
 	/**
 	 * Represents a state for {@link WebAsyncManager} to be in.
 	 * <p><pre>
-	 *        NOT_STARTED <------+
-	 *             |             |
-	 *             v             |
-	 *      ASYNC_PROCESSING     |
-	 *             |             |
-	 *             v             |
-	 *         RESULT_SET -------+
+	 *     +------> NOT_STARTED <------+
+	 *     |             |             |
+	 *     |             v             |
+	 *     |      ASYNC_PROCESSING     |
+	 *     |             |             |
+	 *     |             v             |
+	 *     <-------+ RESULT_SET -------+
 	 * </pre>
 	 * @since 5.3.33
 	 */

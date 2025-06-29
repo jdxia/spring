@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -145,10 +145,24 @@ class KotlinSerializationJsonEncoderTests : AbstractEncoderTests<KotlinSerializa
 		assertThat(encoder.canEncode(ResolvableType.forClass(BigDecimal::class.java), null)).isFalse()
 	}
 
+	@Test
+	fun encodeProperty() {
+		val input = Mono.just(value)
+		val method = this::class.java.getDeclaredMethod("getValue")
+		val methodParameter = MethodParameter.forExecutable(method, -1)
+		testEncode(input, ResolvableType.forMethodParameter(methodParameter), null, null) {
+			it.consumeNextWith(expectString("42"))
+				.verifyComplete()
+		}
+	}
+
 
 	@Serializable
 	data class Pojo(val foo: String, val bar: String, val pojo: Pojo? = null)
 
 	fun handleMapWithNullable(map: Map<String, String?>) = map
+
+	val value: Int
+		get() = 42
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import org.springframework.util.ClassUtils;
  * applying the mapping and mirroring rules of an {@link AnnotationTypeMapping}.
  *
  * <p>Root attribute values are extracted from a source object using a supplied
- * {@code BiFunction}. This allows various different annotation models to be
+ * {@link ValueExtractor}. This allows various different annotation models to be
  * supported by the same class. For example, the attributes source might be an
  * actual {@link Annotation} instance where methods on the annotation instance
  * are {@linkplain AnnotationUtils#invokeAnnotationMethod(Method, Object) invoked}
@@ -375,8 +375,8 @@ final class TypeMappedAnnotation<A extends Annotation> extends AbstractMergedAnn
 	private Object getRequiredValue(int attributeIndex, String attributeName) {
 		Object value = getValue(attributeIndex, Object.class);
 		if (value == null) {
-			throw new NoSuchElementException("No element at attribute index "
-					+ attributeIndex + " for name " + attributeName);
+			throw new NoSuchElementException("No element at attribute index " +
+					attributeIndex + " for name " + attributeName);
 		}
 		return value;
 	}

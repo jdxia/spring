@@ -11,7 +11,7 @@
 	<module name="io.spring.javaformat.checkstyle.check.SpringHeaderCheck">
 		<property name="fileExtensions" value="java"/>
 		<property name="headerType" value="apache2"/>
-		<property name="headerCopyrightPattern" value="20\d\d-20\d\d"/>
+		<property name="headerCopyrightPattern" value="20\d\d-present"/>
 		<property name="packageInfoHeaderType" value="none"/>
 	</module>
 	<module name="com.puppycrawl.tools.checkstyle.checks.NewlineAtEndOfFileCheck"/>
@@ -191,6 +191,7 @@
 		<module name="com.puppycrawl.tools.checkstyle.checks.modifier.ModifierOrderCheck"/>
 
 		<!-- Whitespace -->
+		<module name="com.puppycrawl.tools.checkstyle.checks.whitespace.MethodParamPadCheck"/>
 		<module name="com.puppycrawl.tools.checkstyle.checks.whitespace.SingleSpaceSeparatorCheck"/>
 
 		<!-- Miscellaneous -->
@@ -213,6 +214,14 @@
 			<property name="format" value="[ \t]+$"/>
 			<property name="illegalPattern" value="true"/>
 			<property name="message" value="Trailing whitespace"/>
+		</module>
+		<module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">
+			<!-- https://github.com/spring-projects/spring-framework/wiki/Code-Style#line-wrapping-->
+			<property name="id" value="separatorSymbolLocation"/>
+			<property name="format" value="^\s+?([,?:]|(\+(?!\+))|&amp;&amp;|\|\|)"/>
+			<property name="message"
+				value="Separator symbols ('','', ''+'', ''?'', '':'', ''&amp;&amp;'', ''||'') must be declared at the end of the previous line."/>
+			<property name="ignoreComments" value="true"/>
 		</module>
 		<module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">
 			<property name="id" value="atSinceVersionConvention"/>
@@ -260,13 +269,6 @@
 				value="assertThatExceptionOfType\((NullPointerException|IllegalArgumentException|IOException|IllegalStateException)\.class\)"/>
 			<property name="message"
 				value="Please use specialized AssertJ assertThat*Exception method."/>
-			<property name="ignoreComments" value="true"/>
-		</module>
-		<module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">
-			<property name="id" value="bddMockito"/>
-			<property name="maximum" value="0"/>
-			<property name="format" value="org\.mockito\.Mockito\.(when|doThrow|doAnswer)"/>
-			<property name="message" value="Please use BDDMockito."/>
 			<property name="ignoreComments" value="true"/>
 		</module>
 		<module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">

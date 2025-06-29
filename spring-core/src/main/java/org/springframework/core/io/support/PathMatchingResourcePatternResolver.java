@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,12 @@ import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.NavigableSet;
@@ -214,6 +216,8 @@ import org.springframework.util.StringUtils;
  */
 public class PathMatchingResourcePatternResolver implements ResourcePatternResolver {
 
+	private static final Resource[] EMPTY_RESOURCE_ARRAY = {};
+
 	private static final Log logger = LogFactory.getLog(PathMatchingResourcePatternResolver.class);
 
 	/**
@@ -255,6 +259,8 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 	private final ResourceLoader resourceLoader;
 
 	private PathMatcher pathMatcher = new AntPathMatcher();
+
+	private boolean useCaches = true;
 
 	private final Map<String, Resource[]> rootDirCache = new ConcurrentHashMap<>();
 
@@ -330,6 +336,22 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		return this.pathMatcher;
 	}
 
+	/**
+	 * Specify whether this resolver should use jar caches. Default is {@code true}.
+	 * <p>Switch this flag to {@code false} in order to avoid any jar caching, at
+	 * the {@link JarURLConnection} level as well as within this resolver instance.
+	 * <p>Note that {@link JarURLConnection#setDefaultUseCaches} can be turned off
+	 * independently. This resolver-level setting is designed to only enforce
+	 * {@code JarURLConnection#setUseCaches(false)} if necessary but otherwise
+	 * leaves the JVM-level default in place.
+	 * @since 6.1.19
+	 * @see JarURLConnection#setUseCaches
+	 * @see #clearCache()
+	 */
+	public void setUseCaches(boolean useCaches) {
+		this.useCaches = useCaches;
+	}
+
 
 	@Override
 	public Resource getResource(String location) {
@@ -353,7 +375,7 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 				// all class path resources with the given name
 				Collections.addAll(resources, findAllClassPathResources(locationPatternWithoutPrefix));
 			}
-			return resources.toArray(new Resource[0]);
+			return resources.toArray(EMPTY_RESOURCE_ARRAY);
 		}
 		else {
 			// Generally only look for a pattern after a prefix here,
@@ -397,7 +419,7 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		if (logger.isTraceEnabled()) {
 			logger.trace("Resolved class path location [" + path + "] to resources " + result);
 		}
-		return result.toArray(new Resource[0]);
+		return result.toArray(EMPTY_RESOURCE_ARRAY);
 	}
 
 	/**
@@ -534,7 +556,9 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		Set<ClassPathManifestEntry> entries = this.manifestEntriesCache;
 		if (entries == null) {
 			entries = getClassPathManifestEntries();
-			this.manifestEntriesCache = entries;
+			if (this.useCaches) {
+				this.manifestEntriesCache = entries;
+			}
 		}
 		for (ClassPathManifestEntry entry : entries) {
 			if (!result.contains(entry.resource()) &&
@@ -645,13 +669,15 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 					}
 				}
 				if (currentPrefix != null) {
-					// A prefix match found, potentially to be turned into a common parent cache entry.
-					if (commonPrefix == null || !commonUnique || currentPrefix.length() > commonPrefix.length()) {
-						commonPrefix = currentPrefix;
-						existingPath = path;
-					}
-					else if (currentPrefix.equals(commonPrefix)) {
-						commonUnique = false;
+					if (checkPathWithinPackage(path.substring(currentPrefix.length()))) {
+						// A prefix match found, potentially to be turned into a common parent cache entry.
+						if (commonPrefix == null || !commonUnique || currentPrefix.length() > commonPrefix.length()) {
+							commonPrefix = currentPrefix;
+							existingPath = path;
+						}
+						else if (currentPrefix.equals(commonPrefix)) {
+							commonUnique = false;
+						}
 					}
 				}
 				else if (actualRootPath == null || path.length() > actualRootPath.length()) {
@@ -684,7 +710,9 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 			if (rootDirResources == null) {
 				// Lookup for specific directory, creating a cache entry for it.
 				rootDirResources = getResources(rootDirPath);
-				this.rootDirCache.put(rootDirPath, rootDirResources);
+				if (this.useCaches) {
+					this.rootDirCache.put(rootDirPath, rootDirResources);
+				}
 			}
 		}
 
@@ -716,7 +744,7 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		if (logger.isTraceEnabled()) {
 			logger.trace("Resolved location pattern [" + locationPattern + "] to resources " + result);
 		}
-		return result.toArray(new Resource[0]);
+		return result.toArray(EMPTY_RESOURCE_ARRAY);
 	}
 
 	/**
@@ -804,24 +832,30 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		if (separatorIndex == -1) {
 			separatorIndex = urlFile.indexOf(ResourceUtils.JAR_URL_SEPARATOR);
 		}
-		if (separatorIndex != -1) {
+		if (separatorIndex >= 0) {
 			jarFileUrl = urlFile.substring(0, separatorIndex);
 			rootEntryPath = urlFile.substring(separatorIndex + 2);  // both separators are 2 chars
 			NavigableSet<String> entriesCache = this.jarEntriesCache.get(jarFileUrl);
 			if (entriesCache != null) {
 				Set<Resource> result = new LinkedHashSet<>(64);
+				// Clean root entry path to match jar entries format without "!" separators
+				rootEntryPath = rootEntryPath.replace(ResourceUtils.JAR_URL_SEPARATOR, "/");
 				// Search sorted entries from first entry with rootEntryPath prefix
+				boolean rootEntryPathFound = false;
 				for (String entryPath : entriesCache.tailSet(rootEntryPath, false)) {
 					if (!entryPath.startsWith(rootEntryPath)) {
 						// We are beyond the potential matches in the current TreeSet.
 						break;
 					}
+					rootEntryPathFound = true;
 					String relativePath = entryPath.substring(rootEntryPath.length());
 					if (getPathMatcher().match(subPattern, relativePath)) {
 						result.add(rootDirResource.createRelative(relativePath));
 					}
 				}
-				return result;
+				if (rootEntryPathFound) {
+					return result;
+				}
 			}
 		}
 
@@ -831,11 +865,21 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 
 		if (con instanceof JarURLConnection jarCon) {
 			// Should usually be the case for traditional JAR files.
-			jarFile = jarCon.getJarFile();
-			jarFileUrl = jarCon.getJarFileURL().toExternalForm();
-			JarEntry jarEntry = jarCon.getJarEntry();
-			rootEntryPath = (jarEntry != null ? jarEntry.getName() : "");
-			closeJarFile = !jarCon.getUseCaches();
+			if (!this.useCaches) {
+				jarCon.setUseCaches(false);
+			}
+			try {
+				jarFile = jarCon.getJarFile();
+				jarFileUrl = jarCon.getJarFileURL().toExternalForm();
+				JarEntry jarEntry = jarCon.getJarEntry();
+				rootEntryPath = (jarEntry != null ? jarEntry.getName() : "");
+				closeJarFile = !jarCon.getUseCaches();
+			}
+			catch (ZipException | FileNotFoundException | NoSuchFileException ex) {
+				// Happens in case of a non-jar file or in case of a cached root directory
+				// without the specific subdirectory present, respectively.
+				return Collections.emptySet();
+			}
 		}
 		else {
 			// No JarURLConnection -> need to resort to URL file parsing.
@@ -872,7 +916,13 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 			}
 			Set<Resource> result = new LinkedHashSet<>(64);
 			NavigableSet<String> entriesCache = new TreeSet<>();
-			for (String entryPath : jarFile.stream().map(JarEntry::getName).sorted().toList()) {
+			Iterator<String> entryIterator = jarFile.stream().map(JarEntry::getName).sorted().iterator();
+			while (entryIterator.hasNext()) {
+				String entryPath = entryIterator.next();
+				int entrySeparatorIndex = entryPath.indexOf(ResourceUtils.JAR_URL_SEPARATOR);
+				if (entrySeparatorIndex >= 0) {
+					entryPath = entryPath.substring(entrySeparatorIndex + ResourceUtils.JAR_URL_SEPARATOR.length());
+				}
 				entriesCache.add(entryPath);
 				if (entryPath.startsWith(rootEntryPath)) {
 					String relativePath = entryPath.substring(rootEntryPath.length());
@@ -881,8 +931,10 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 					}
 				}
 			}
-			// Cache jar entries in TreeSet for efficient searching on re-encounter.
-			this.jarEntriesCache.put(jarFileUrl, entriesCache);
+			if (this.useCaches) {
+				// Cache jar entries in TreeSet for efficient searching on re-encounter.
+				this.jarEntriesCache.put(jarFileUrl, entriesCache);
+			}
 			return result;
 		}
 		finally {
@@ -1103,6 +1155,10 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		return (path.startsWith("/") ? path.substring(1) : path);
 	}
 
+	private static boolean checkPathWithinPackage(String path) {
+		return (path.contains("/") && !path.contains(ResourceUtils.JAR_URL_SEPARATOR));
+	}
+
 
 	/**
 	 * Inner delegate class, avoiding a hard JBoss VFS API dependency at runtime.
@@ -1220,7 +1276,7 @@ public class PathMatchingResourcePatternResolver implements ResourcePatternResol
 		}
 
 		/**
-		 * Return a alternative form of the resource, i.e. with or without a leading slash.
+		 * Return an alternative form of the resource, i.e. with or without a leading slash.
 		 * @param path the file path (with or without a leading slash)
 		 * @return the alternative form or {@code null}
 		 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -430,7 +430,8 @@ class RequestMappingHandlerMappingTests {
 		@PostExchange(url = "/custom", contentType = "application/json", accept = "text/plain;charset=UTF-8")
 		public void customValuesExchange(){}
 
-		@HttpExchange(method="GET", url = "/headers",
+		@HttpExchange(
+				method="GET", url = "/headers",
 				headers = {"h1=hv1", "!h2", "Accept=application/ignored"})
 		public String customHeadersExchange() {
 			return "info";

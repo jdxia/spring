@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -291,7 +291,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		String lastKey = tokens.keys[tokens.keys.length - 1];
 
 		if (propValue.getClass().isArray()) {
-			Class<?> requiredType = propValue.getClass().componentType();
+			Class<?> componentType = propValue.getClass().componentType();
 			int arrayIndex = Integer.parseInt(lastKey);
 			Object oldValue = null;
 			try {
@@ -299,10 +299,9 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 					oldValue = Array.get(propValue, arrayIndex);
 				}
 				Object convertedValue = convertIfNecessary(tokens.canonicalName, oldValue, pv.getValue(),
-						requiredType, ph.nested(tokens.keys.length));
+						componentType, ph.nested(tokens.keys.length));
 				int length = Array.getLength(propValue);
 				if (arrayIndex >= length && arrayIndex < this.autoGrowCollectionLimit) {
-					Class<?> componentType = propValue.getClass().componentType();
 					Object newArray = Array.newInstance(componentType, arrayIndex + 1);
 					System.arraycopy(propValue, 0, newArray, 0, length);
 					int lastKeyIndex = tokens.canonicalName.lastIndexOf('[');
@@ -658,6 +657,14 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 						growCollectionIfNecessary(list, index, indexedPropertyName.toString(), ph, i + 1);
 						value = list.get(index);
 					}
+					else if (value instanceof Map map) {
+						Class<?> mapKeyType = ph.getResolvableType().getNested(i + 1).asMap().resolveGeneric(0);
+						// IMPORTANT: Do not pass full property name in here - property editors
+						// must not kick in for map keys but rather only for map values.
+						TypeDescriptor typeDescriptor = TypeDescriptor.valueOf(mapKeyType);
+						Object convertedMapKey = convertIfNecessary(null, null, key, mapKeyType, typeDescriptor);
+						value = map.get(convertedMapKey);
+					}
 					else if (value instanceof Iterable iterable) {
 						// Apply index to Iterator in case of a Set/Collection/Iterable.
 						int index = Integer.parseInt(key);
@@ -684,14 +691,6 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 									"Cannot get element with index " + index + " from Iterable of size " +
 											currIndex + ", accessed using property path '" + propertyName + "'");
 						}
-					}
-					else if (value instanceof Map map) {
-						Class<?> mapKeyType = ph.getResolvableType().getNested(i + 1).asMap().resolveGeneric(0);
-						// IMPORTANT: Do not pass full property name in here - property editors
-						// must not kick in for map keys but rather only for map values.
-						TypeDescriptor typeDescriptor = TypeDescriptor.valueOf(mapKeyType);
-						Object convertedMapKey = convertIfNecessary(null, null, key, mapKeyType, typeDescriptor);
-						value = map.get(convertedMapKey);
 					}
 					else {
 						throw new InvalidPropertyException(getRootClass(), this.nestedPath + propertyName,
@@ -904,16 +903,7 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 	private Object newValue(Class<?> type, @Nullable TypeDescriptor desc, String name) {
 		try {
 			if (type.isArray()) {
-				Class<?> componentType = type.componentType();
-				// TODO - only handles 2-dimensional arrays
-				if (componentType.isArray()) {
-					Object array = Array.newInstance(componentType, 1);
-					Array.set(array, 0, Array.newInstance(componentType.componentType(), 0));
-					return array;
-				}
-				else {
-					return Array.newInstance(componentType, 0);
-				}
+				return createArray(type);
 			}
 			else if (Collection.class.isAssignableFrom(type)) {
 				TypeDescriptor elementDesc = (desc != null ? desc.getElementTypeDescriptor() : null);
@@ -934,6 +924,24 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 		catch (Throwable ex) {
 			throw new NullValueInNestedPathException(getRootClass(), this.nestedPath + name,
 					"Could not instantiate property type [" + type.getName() + "] to auto-grow nested property path", ex);
+		}
+	}
+
+	/**
+	 * Create the array for the given array type.
+	 * @param arrayType the desired type of the target array
+	 * @return a new array instance
+	 */
+	private static Object createArray(Class<?> arrayType) {
+		Assert.notNull(arrayType, "Array type must not be null");
+		Class<?> componentType = arrayType.componentType();
+		if (componentType.isArray()) {
+			Object array = Array.newInstance(componentType, 1);
+			Array.set(array, 0, createArray(componentType));
+			return array;
+		}
+		else {
+			return Array.newInstance(componentType, 0);
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,6 +159,9 @@ public final class GenericTypeResolver {
 			if (genericType instanceof TypeVariable<?> typeVariable) {
 				ResolvableType resolvedTypeVariable = resolveVariable(
 						typeVariable, ResolvableType.forClass(contextClass));
+				if (resolvedTypeVariable == ResolvableType.NONE) {
+					resolvedTypeVariable = ResolvableType.forVariableBounds(typeVariable);
+				}
 				if (resolvedTypeVariable != ResolvableType.NONE) {
 					Class<?> resolved = resolvedTypeVariable.resolve();
 					if (resolved != null) {
@@ -169,13 +172,16 @@ public final class GenericTypeResolver {
 			else if (genericType instanceof ParameterizedType parameterizedType) {
 				ResolvableType resolvedType = ResolvableType.forType(genericType);
 				if (resolvedType.hasUnresolvableGenerics()) {
-					ResolvableType[] generics = new ResolvableType[parameterizedType.getActualTypeArguments().length];
 					Type[] typeArguments = parameterizedType.getActualTypeArguments();
+					ResolvableType[] generics = new ResolvableType[typeArguments.length];
 					ResolvableType contextType = ResolvableType.forClass(contextClass);
 					for (int i = 0; i < typeArguments.length; i++) {
 						Type typeArgument = typeArguments[i];
 						if (typeArgument instanceof TypeVariable<?> typeVariable) {
 							ResolvableType resolvedTypeArgument = resolveVariable(typeVariable, contextType);
+							if (resolvedTypeArgument == ResolvableType.NONE) {
+								resolvedTypeArgument = ResolvableType.forVariableBounds(typeVariable);
+							}
 							if (resolvedTypeArgument != ResolvableType.NONE) {
 								generics[i] = resolvedTypeArgument;
 							}
@@ -209,6 +215,9 @@ public final class GenericTypeResolver {
 			}
 			resolvedType = variableResolver.resolveVariable(typeVariable);
 			if (resolvedType != null) {
+				while (resolvedType.getType() instanceof TypeVariable<?>) {
+					resolvedType = resolvedType.resolveType();
+				}
 				return resolvedType;
 			}
 		}

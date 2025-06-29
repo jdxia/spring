@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -509,8 +509,8 @@ final class PostProcessorRegistrationDelegate {
 
 		private void postProcessValue(List<MergedBeanDefinitionPostProcessor> postProcessors,
 				BeanDefinitionValueResolver valueResolver, @Nullable Object value) {
-			if (value instanceof BeanDefinitionHolder bdh
-					&& bdh.getBeanDefinition() instanceof AbstractBeanDefinition innerBd) {
+			if (value instanceof BeanDefinitionHolder bdh &&
+					bdh.getBeanDefinition() instanceof AbstractBeanDefinition innerBd) {
 
 				Class<?> innerBeanType = resolveBeanType(innerBd);
 				resolveInnerBeanDefinition(valueResolver, innerBd, (innerBeanName, innerBeanDefinition)

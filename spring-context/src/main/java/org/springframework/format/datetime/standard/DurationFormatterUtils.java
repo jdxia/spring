@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -143,8 +143,8 @@ public abstract class DurationFormatterUtils {
 
 	private static final Pattern ISO_8601_PATTERN = Pattern.compile("^[+-]?[pP].*$");
 	private static final Pattern SIMPLE_PATTERN = Pattern.compile("^([+-]?\\d+)([a-zA-Z]{0,2})$");
-	private static final Pattern COMPOSITE_PATTERN = Pattern.compile("^([+-]?)\\(?\\s?(\\d+d)?\\s?(\\d+h)?\\s?(\\d+m)?"
-			+ "\\s?(\\d+s)?\\s?(\\d+ms)?\\s?(\\d+us)?\\s?(\\d+ns)?\\)?$");
+	private static final Pattern COMPOSITE_PATTERN = Pattern.compile("^([+-]?)\\(?\\s?(\\d+d)?\\s?(\\d+h)?\\s?(\\d+m)?" +
+			"\\s?(\\d+s)?\\s?(\\d+ms)?\\s?(\\d+us)?\\s?(\\d+ns)?\\)?$");
 
 	private static Duration parseIso8601(String value) {
 		try {

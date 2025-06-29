@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -787,9 +787,9 @@ public abstract class StringUtils {
 			pathElements.addFirst(CURRENT_PATH);
 		}
 
-		final String joined = collectionToDelimitedString(pathElements, FOLDER_SEPARATOR);
-		// avoid string concatenation with empty prefix
-		return prefix.isEmpty() ? joined : prefix + joined;
+		String joined = collectionToDelimitedString(pathElements, FOLDER_SEPARATOR);
+		// Avoid String concatenation with empty prefix
+		return (prefix.isEmpty() ? joined : prefix + joined);
 	}
 
 	/**
@@ -808,7 +808,7 @@ public abstract class StringUtils {
 	 * <li>Alphanumeric characters {@code "a"} through {@code "z"}, {@code "A"} through {@code "Z"},
 	 * and {@code "0"} through {@code "9"} stay the same.</li>
 	 * <li>Special characters {@code "-"}, {@code "_"}, {@code "."}, and {@code "*"} stay the same.</li>
-	 * <li>A sequence "{@code %<i>xy</i>}" is interpreted as a hexadecimal representation of the character.</li>
+	 * <li>A sequence "<i>{@code %xy}</i>" is interpreted as a hexadecimal representation of the character.</li>
 	 * <li>For all other characters (including those already decoded), the output is undefined.</li>
 	 * </ul>
 	 * @param source the encoded String

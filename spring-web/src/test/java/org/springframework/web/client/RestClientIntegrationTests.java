@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package org.springframework.web.client;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -42,6 +43,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.StreamingHttpOutputMessage;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -51,6 +53,7 @@ import org.springframework.http.client.JettyClientHttpRequestFactory;
 import org.springframework.http.client.ReactorClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.testfixture.xml.Pojo;
@@ -58,6 +61,7 @@ import org.springframework.web.testfixture.xml.Pojo;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -571,6 +575,30 @@ class RestClientIntegrationTests {
 		});
 	}
 
+	@ParameterizedRestClientTest // gh-35102
+	void postStreamingBody(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+		prepareResponse(response -> response.setResponseCode(200));
+
+		StreamingHttpOutputMessage.Body testBody = out -> {
+			assertThat(out).as("Not a streaming response").isNotInstanceOf(FastByteArrayOutputStream.class);
+			new ByteArrayInputStream("test-data".getBytes(UTF_8)).transferTo(out);
+		};
+
+		ResponseEntity<Void> result = this.restClient.post()
+				.uri("/streaming/body")
+				.body(testBody)
+				.retrieve()
+				.toBodilessEntity();
+
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		expectRequestCount(1);
+		expectRequest(request -> {
+			assertThat(request.getPath()).isEqualTo("/streaming/body");
+			assertThat(request.getBody().readUtf8()).isEqualTo("test-data");
+		});
+	}
 
 	@ParameterizedRestClientTest
 	void statusHandler(ClientHttpRequestFactory requestFactory) {
@@ -764,6 +792,39 @@ class RestClientIntegrationTests {
 
 		expectRequestCount(1);
 		expectRequest(request -> assertThat(request.getPath()).isEqualTo("/greeting"));
+	}
+
+	@ParameterizedRestClientTest
+	void exchangeForRequiredValue(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setBody("Hello Spring!"));
+
+		String result = this.restClient.get()
+				.uri("/greeting")
+				.header("X-Test-Header", "testvalue")
+				.exchangeForRequiredValue((request, response) -> new String(RestClientUtils.getBody(response), UTF_8));
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> {
+			assertThat(request.getHeader("X-Test-Header")).isEqualTo("testvalue");
+			assertThat(request.getPath()).isEqualTo("/greeting");
+		});
+	}
+
+	@ParameterizedRestClientTest
+	@SuppressWarnings("DataFlowIssue")
+	void exchangeForNullRequiredValue(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setBody("Hello Spring!"));
+
+		assertThatIllegalStateException().isThrownBy(() -> this.restClient.get()
+				.uri("/greeting")
+				.header("X-Test-Header", "testvalue")
+				.exchangeForRequiredValue((request, response) -> null));
 	}
 
 	@ParameterizedRestClientTest

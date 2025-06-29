@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,9 +43,9 @@ final class TestBeanOverrideHandler extends BeanOverrideHandler {
 
 
 	TestBeanOverrideHandler(Field field, ResolvableType beanType, @Nullable String beanName,
-			BeanOverrideStrategy strategy, Method factoryMethod) {
+			String contextName, BeanOverrideStrategy strategy, Method factoryMethod) {
 
-		super(field, beanType, beanName, strategy);
+		super(field, beanType, beanName, contextName, strategy);
 		this.factoryMethod = factoryMethod;
 	}
 
@@ -90,6 +90,7 @@ final class TestBeanOverrideHandler extends BeanOverrideHandler {
 				.append("field", getField())
 				.append("beanType", getBeanType())
 				.append("beanName", getBeanName())
+				.append("contextName", getContextName())
 				.append("strategy", getStrategy())
 				.append("factoryMethod", this.factoryMethod)
 				.toString();

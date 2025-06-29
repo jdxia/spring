@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -341,12 +341,18 @@ public class GenericConversionService implements ConfigurableConversionService {
 			}
 			// Full check for complex generic type match required?
 			ResolvableType rt = targetType.getResolvableType();
-			if (!(rt.getType() instanceof Class) && !rt.isAssignableFrom(this.targetType) &&
-					!this.targetType.hasUnresolvableGenerics()) {
+			if (!(rt.getType() instanceof Class) && !rt.isAssignableFromResolvedPart(this.targetType)) {
 				return false;
 			}
 			return !(this.converter instanceof ConditionalConverter conditionalConverter) ||
 					conditionalConverter.matches(sourceType, targetType);
+		}
+
+		public boolean matchesFallback(TypeDescriptor sourceType, TypeDescriptor targetType) {
+			return (this.typeInfo.getTargetType() == targetType.getObjectType() &&
+					this.targetType.hasUnresolvableGenerics() &&
+					(!(this.converter instanceof ConditionalConverter conditionalConverter) ||
+							conditionalConverter.matches(sourceType, targetType)));
 		}
 
 		@Override
@@ -623,9 +629,17 @@ public class GenericConversionService implements ConfigurableConversionService {
 
 		@Nullable
 		public GenericConverter getConverter(TypeDescriptor sourceType, TypeDescriptor targetType) {
+			// Look for proper match among all converters (taking full generics into account)
 			for (GenericConverter converter : this.converters) {
 				if (!(converter instanceof ConditionalGenericConverter genericConverter) ||
 						genericConverter.matches(sourceType, targetType)) {
+					return converter;
+				}
+			}
+			// Fallback to pre-6.2.3 behavior: accept Class match for unresolvable generics
+			for (GenericConverter converter : this.converters) {
+				if (converter instanceof ConverterAdapter converterAdapter &&
+						converterAdapter.matchesFallback(sourceType, targetType)) {
 					return converter;
 				}
 			}

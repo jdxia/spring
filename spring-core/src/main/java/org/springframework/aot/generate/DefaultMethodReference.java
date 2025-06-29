@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,8 +102,8 @@ public class DefaultMethodReference implements MethodReference {
 			TypeName argumentType = argumentTypes[i];
 			CodeBlock argumentCode = argumentCodeGenerator.generateCode(argumentType);
 			if (argumentCode == null) {
-				throw new IllegalArgumentException("Could not generate code for " + this
-						+ ": parameter " + i + " of type " + argumentType + " is not supported");
+				throw new IllegalArgumentException("Could not generate code for " + this +
+						": parameter " + i + " of type " + argumentType + " is not supported");
 			}
 			arguments.add(argumentCode);
 		}

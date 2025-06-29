@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,7 +120,6 @@ public class LocalSessionFactoryBuilder extends Configuration {
 
 	private final ResourcePatternResolver resourcePatternResolver;
 
-	@Nullable
 	private TypeFilter[] entityTypeFilters = DEFAULT_ENTITY_TYPE_FILTERS;
 
 
@@ -379,11 +378,9 @@ public class LocalSessionFactoryBuilder extends Configuration {
 	 * the current class descriptor contained in the metadata reader.
 	 */
 	private boolean matchesEntityTypeFilter(MetadataReader reader, MetadataReaderFactory readerFactory) throws IOException {
-		if (this.entityTypeFilters != null) {
-			for (TypeFilter filter : this.entityTypeFilters) {
-				if (filter.match(reader, readerFactory)) {
-					return true;
-				}
+		for (TypeFilter filter : this.entityTypeFilters) {
+			if (filter.match(reader, readerFactory)) {
+				return true;
 			}
 		}
 		return false;

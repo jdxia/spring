@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -150,6 +150,7 @@ final class DefaultRestClient implements RestClient {
 		this.builder = builder;
 	}
 
+
 	@Override
 	public RequestHeadersUriSpec<?> get() {
 		return methodInternal(HttpMethod.GET);
@@ -281,8 +282,6 @@ final class DefaultRestClient implements RestClient {
 		}
 		return (Class<T>) Object.class;
 	}
-
-
 
 
 	private class DefaultRequestBodyUriSpec implements RequestBodyUriSpec {
@@ -467,7 +466,14 @@ final class DefaultRestClient implements RestClient {
 
 		@Override
 		public RequestBodySpec body(StreamingHttpOutputMessage.Body body) {
-			this.body = request -> body.writeTo(request.getBody());
+			this.body = request -> {
+				if (request instanceof StreamingHttpOutputMessage streamingMessage) {
+					streamingMessage.setBody(body);
+				}
+				else {
+					body.writeTo(request.getBody());
+				}
+			};
 			return this;
 		}
 
@@ -523,7 +529,6 @@ final class DefaultRestClient implements RestClient {
 			}
 		}
 
-
 		@Override
 		public ResponseSpec retrieve() {
 			return new DefaultResponseSpec(this);
@@ -533,6 +538,13 @@ final class DefaultRestClient implements RestClient {
 		@Nullable
 		public <T> T exchange(ExchangeFunction<T> exchangeFunction, boolean close) {
 			return exchangeInternal(exchangeFunction, close);
+		}
+
+		@Override
+		public <T> T exchangeForRequiredValue(RequiredValueExchangeFunction<T> exchangeFunction, boolean close) {
+			T value = exchangeInternal(exchangeFunction, close);
+			Assert.state(value != null, "The exchanged value must not be null");
+			return value;
 		}
 
 		@Nullable
@@ -832,7 +844,6 @@ final class DefaultRestClient implements RestClient {
 				throw new UncheckedIOException(ex);
 			}
 		}
-
 	}
 
 
@@ -882,8 +893,6 @@ final class DefaultRestClient implements RestClient {
 		public void close() {
 			this.delegate.close();
 		}
-
 	}
-
 
 }

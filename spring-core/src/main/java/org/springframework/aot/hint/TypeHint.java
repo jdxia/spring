@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2024 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -182,9 +182,11 @@ public final class TypeHint implements ConditionalHint {
 		}
 
 		/**
-		 * Register the need for reflection on the field with the specified name.
+		 * Register the need for reflective access on the field with the specified name.
 		 * @param name the name of the field
 		 * @return {@code this}, to facilitate method chaining
+		 * @see java.lang.reflect.Field#get(Object)
+		 * @see java.lang.reflect.Field#set(Object, Object)
 		 */
 		public Builder withField(String name) {
 			this.fields.add(name);

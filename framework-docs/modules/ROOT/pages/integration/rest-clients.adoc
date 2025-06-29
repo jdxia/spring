@@ -30,36 +30,36 @@ Java::
 +
 [source,java,indent=0,subs="verbatim"]
 ----
-RestClient defaultClient = RestClient.create();
-
-RestClient customClient = RestClient.builder()
-  .requestFactory(new HttpComponentsClientHttpRequestFactory())
-  .messageConverters(converters -> converters.add(new MyCustomMessageConverter()))
-  .baseUrl("https://example.com")
-  .defaultUriVariables(Map.of("variable", "foo"))
-  .defaultHeader("My-Header", "Foo")
-  .defaultCookie("My-Cookie", "Bar")
-  .requestInterceptor(myCustomInterceptor)
-  .requestInitializer(myCustomInitializer)
-  .build();
+	RestClient defaultClient = RestClient.create();
+	
+	RestClient customClient = RestClient.builder()
+		.requestFactory(new HttpComponentsClientHttpRequestFactory())
+		.messageConverters(converters -> converters.add(new MyCustomMessageConverter()))
+		.baseUrl("https://example.com")
+		.defaultUriVariables(Map.of("variable", "foo"))
+		.defaultHeader("My-Header", "Foo")
+		.defaultCookie("My-Cookie", "Bar")
+		.requestInterceptor(myCustomInterceptor)
+		.requestInitializer(myCustomInitializer)
+		.build();
 ----
 
 Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim"]
 ----
-val defaultClient = RestClient.create()
-
-val customClient = RestClient.builder()
-  .requestFactory(HttpComponentsClientHttpRequestFactory())
-  .messageConverters { converters -> converters.add(MyCustomMessageConverter()) }
-  .baseUrl("https://example.com")
-  .defaultUriVariables(mapOf("variable" to "foo"))
-  .defaultHeader("My-Header", "Foo")
-  .defaultCookie("My-Cookie", "Bar")
-  .requestInterceptor(myCustomInterceptor)
-  .requestInitializer(myCustomInitializer)
-  .build()
+	val defaultClient = RestClient.create()
+	
+	val customClient = RestClient.builder()
+		.requestFactory(HttpComponentsClientHttpRequestFactory())
+		.messageConverters { converters -> converters.add(MyCustomMessageConverter()) }
+		.baseUrl("https://example.com")
+		.defaultUriVariables(mapOf("variable" to "foo"))
+		.defaultHeader("My-Header", "Foo")
+		.defaultCookie("My-Cookie", "Bar")
+		.requestInterceptor(myCustomInterceptor)
+		.requestInitializer(myCustomInitializer)
+		.build()
 ----
 ======
 
@@ -81,20 +81,20 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-int id = 42;
-restClient.get()
-  .uri("https://example.com/orders/{id}", id)
-  ....
+	int id = 42;
+	restClient.get()
+		.uri("https://example.com/orders/{id}", id)
+		// ...
 ----
 
 Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val id = 42
-restClient.get()
-  .uri("https://example.com/orders/{id}", id)
-  ...
+	val id = 42
+	restClient.get()
+		.uri("https://example.com/orders/{id}", id)
+		// ...
 ----
 ======
 
@@ -115,11 +115,15 @@ Finally, the body can be set to a callback function that writes to an `OutputStr
 
 ==== Retrieving the response
 
-Once the request has been set up, the HTTP response is accessed by invoking `retrieve()`.
-The response body can be accessed by using `body(Class)` or `body(ParameterizedTypeReference)` for parameterized types like lists.
+Once the request has been set up, it can be sent by chaining method calls after `retrieve()`.
+For example, the response body can be accessed by using `retrieve().body(Class)` or `retrieve().body(ParameterizedTypeReference)` for parameterized types like lists.
 The `body` method converts the response contents into various types – for instance, bytes can be converted into a `String`, JSON can be converted into objects using Jackson, and so on (see <<rest-message-conversion>>).
 
-The response can also be converted into a `ResponseEntity`, giving access to the response headers as well as the body.
+The response can also be converted into a `ResponseEntity`, giving access to the response headers as well as the body, with `retrieve().toEntity(Class)`
+
+NOTE: Calling `retrieve()` by itself is a no-op and returns a `ResponseSpec`.
+Applications must invoke a terminal operation on the `ResponseSpec` to have any side effect.
+If consuming the response has no interest for your use case, you can use `retrieve().toBodilessEntity()`.
 
 This sample shows how `RestClient` can be used to perform a simple `GET` request.
 
@@ -129,12 +133,12 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-String result = restClient.get() <1>
-  .uri("https://example.com") <2>
-  .retrieve() <3>
-  .body(String.class); <4>
-
-System.out.println(result); <5>
+	String result = restClient.get() <1>
+		.uri("https://example.com") <2>
+		.retrieve() <3>
+		.body(String.class); <4>
+	
+	System.out.println(result); <5>
 ----
 <1> Set up a GET request
 <2> Specify the URL to connect to
@@ -146,12 +150,12 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val result= restClient.get() <1>
-  .uri("https://example.com") <2>
-  .retrieve() <3>
-  .body<String>() <4>
-
-println(result) <5>
+	val result= restClient.get() <1>
+		.uri("https://example.com") <2>
+		.retrieve() <3>
+		.body<String>() <4>
+	
+	println(result) <5>
 ----
 <1> Set up a GET request
 <2> Specify the URL to connect to
@@ -168,14 +172,14 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-ResponseEntity<String> result = restClient.get() <1>
-  .uri("https://example.com") <1>
-  .retrieve()
-  .toEntity(String.class); <2>
-
-System.out.println("Response status: " + result.getStatusCode()); <3>
-System.out.println("Response headers: " + result.getHeaders()); <3>
-System.out.println("Contents: " + result.getBody()); <3>
+	ResponseEntity<String> result = restClient.get() <1>
+		.uri("https://example.com") <1>
+		.retrieve()
+		.toEntity(String.class); <2>
+	
+	System.out.println("Response status: " + result.getStatusCode()); <3>
+	System.out.println("Response headers: " + result.getHeaders()); <3>
+	System.out.println("Contents: " + result.getBody()); <3>
 ----
 <1> Set up a GET request for the specified URL
 <2> Convert the response into a `ResponseEntity`
@@ -185,14 +189,14 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val result = restClient.get() <1>
-  .uri("https://example.com") <1>
-  .retrieve()
-  .toEntity<String>() <2>
-
-println("Response status: " + result.statusCode) <3>
-println("Response headers: " + result.headers) <3>
-println("Contents: " + result.body) <3>
+	val result = restClient.get() <1>
+		.uri("https://example.com") <1>
+		.retrieve()
+		.toEntity<String>() <2>
+	
+	println("Response status: " + result.statusCode) <3>
+	println("Response headers: " + result.headers) <3>
+	println("Contents: " + result.body) <3>
 ----
 <1> Set up a GET request for the specified URL
 <2> Convert the response into a `ResponseEntity`
@@ -208,12 +212,12 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-int id = ...;
-Pet pet = restClient.get()
-  .uri("https://petclinic.example.com/pets/{id}", id) <1>
-  .accept(APPLICATION_JSON) <2>
-  .retrieve()
-  .body(Pet.class); <3>
+	int id = ...;
+	Pet pet = restClient.get()
+		.uri("https://petclinic.example.com/pets/{id}", id) <1>
+		.accept(APPLICATION_JSON) <2>
+		.retrieve()
+		.body(Pet.class); <3>
 ----
 <1> Using URI variables
 <2> Set the `Accept` header to `application/json`
@@ -223,12 +227,12 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val id = ...
-val pet = restClient.get()
-  .uri("https://petclinic.example.com/pets/{id}", id) <1>
-  .accept(APPLICATION_JSON) <2>
-  .retrieve()
-  .body<Pet>() <3>
+	val id = ...
+	val pet = restClient.get()
+		.uri("https://petclinic.example.com/pets/{id}", id) <1>
+		.accept(APPLICATION_JSON) <2>
+		.retrieve()
+		.body<Pet>() <3>
 ----
 <1> Using URI variables
 <2> Set the `Accept` header to `application/json`
@@ -243,13 +247,13 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-Pet pet = ... <1>
-ResponseEntity<Void> response = restClient.post() <2>
-  .uri("https://petclinic.example.com/pets/new") <2>
-  .contentType(APPLICATION_JSON) <3>
-  .body(pet) <4>
-  .retrieve()
-  .toBodilessEntity(); <5>
+	Pet pet = ... <1>
+	ResponseEntity<Void> response = restClient.post() <2>
+		.uri("https://petclinic.example.com/pets/new") <2>
+		.contentType(APPLICATION_JSON) <3>
+		.body(pet) <4>
+		.retrieve()
+		.toBodilessEntity(); <5>
 ----
 <1> Create a `Pet` domain object
 <2> Set up a POST request, and the URL to connect to
@@ -261,13 +265,13 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val pet: Pet = ... <1>
-val response = restClient.post() <2>
-  .uri("https://petclinic.example.com/pets/new") <2>
-  .contentType(APPLICATION_JSON) <3>
-  .body(pet) <4>
-  .retrieve()
-  .toBodilessEntity() <5>
+	val pet: Pet = ... <1>
+	val response = restClient.post() <2>
+		.uri("https://petclinic.example.com/pets/new") <2>
+		.contentType(APPLICATION_JSON) <3>
+		.body(pet) <4>
+		.retrieve()
+		.toBodilessEntity() <5>
 ----
 <1> Create a `Pet` domain object
 <2> Set up a POST request, and the URL to connect to
@@ -287,13 +291,13 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-String result = restClient.get() <1>
-  .uri("https://example.com/this-url-does-not-exist") <1>
-  .retrieve()
-  .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { <2>
-      throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()); <3>
-  })
-  .body(String.class);
+	String result = restClient.get() <1>
+		.uri("https://example.com/this-url-does-not-exist") <1>
+		.retrieve()
+		.onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { <2>
+			throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()); <3>
+		})
+		.body(String.class);
 ----
 <1> Create a GET request for a URL that returns a 404 status code
 <2> Set up a status handler for all 4xx status codes
@@ -303,12 +307,12 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val result = restClient.get() <1>
-  .uri("https://example.com/this-url-does-not-exist") <1>
-  .retrieve()
-  .onStatus(HttpStatusCode::is4xxClientError) { _, response -> <2>
-    throw MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()) } <3>
-  .body<String>()
+	val result = restClient.get() <1>
+		.uri("https://example.com/this-url-does-not-exist") <1>
+		.retrieve()
+		.onStatus(HttpStatusCode::is4xxClientError) { _, response -> <2>
+			throw MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()) } <3>
+		.body<String>()
 ----
 <1> Create a GET request for a URL that returns a 404 status code
 <2> Set up a status handler for all 4xx status codes
@@ -326,18 +330,18 @@ Java::
 +
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-Pet result = restClient.get()
-  .uri("https://petclinic.example.com/pets/{id}", id)
-  .accept(APPLICATION_JSON)
-  .exchange((request, response) -> { <1>
-    if (response.getStatusCode().is4xxClientError()) { <2>
-      throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()); <2>
-    }
-    else {
-      Pet pet = convertResponse(response); <3>
-      return pet;
-    }
-  });
+	Pet result = restClient.get()
+		.uri("https://petclinic.example.com/pets/{id}", id)
+		.accept(APPLICATION_JSON)
+		.exchange((request, response) -> { <1>
+			if (response.getStatusCode().is4xxClientError()) { <2>
+				throw new MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()); <2>
+			}
+			else {
+				Pet pet = convertResponse(response); <3>
+				return pet;
+			}
+		});
 ----
 <1> `exchange` provides the request and response
 <2> Throw an exception when the response has a 4xx status code
@@ -347,17 +351,17 @@ Kotlin::
 +
 [source,kotlin,indent=0,subs="verbatim,quotes"]
 ----
-val result = restClient.get()
-  .uri("https://petclinic.example.com/pets/{id}", id)
-  .accept(MediaType.APPLICATION_JSON)
-  .exchange { request, response -> <1>
-    if (response.getStatusCode().is4xxClientError()) { <2>
-      throw MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()) <2>
-    } else {
-      val pet: Pet = convertResponse(response) <3>
-      pet
-    }
-  }
+	val result = restClient.get()
+		.uri("https://petclinic.example.com/pets/{id}", id)
+		.accept(MediaType.APPLICATION_JSON)
+		.exchange { request, response -> <1>
+			if (response.getStatusCode().is4xxClientError()) { <2>
+				throw MyCustomRuntimeException(response.getStatusCode(), response.getHeaders()) <2>
+			} else {
+				val pet: Pet = convertResponse(response) <3>
+				pet
+			}
+		}
 ----
 <1> `exchange` provides the request and response
 <2> Throw an exception when the response has a 4xx status code
@@ -376,15 +380,14 @@ To serialize only a subset of the object properties, you can specify a {baeldung
 
 [source,java,indent=0,subs="verbatim"]
 ----
-MappingJacksonValue value = new MappingJacksonValue(new User("eric", "7!jd#h23"));
-value.setSerializationView(User.WithoutPasswordView.class);
-
-ResponseEntity<Void> response = restClient.post() // or RestTemplate.postForEntity
-  .contentType(APPLICATION_JSON)
-  .body(value)
-  .retrieve()
-  .toBodilessEntity();
-
+	MappingJacksonValue value = new MappingJacksonValue(new User("eric", "7!jd#h23"));
+	value.setSerializationView(User.WithoutPasswordView.class);
+	
+	ResponseEntity<Void> response = restClient.post() // or RestTemplate.postForEntity
+		.contentType(APPLICATION_JSON)
+		.body(value)
+		.retrieve()
+		.toBodilessEntity();
 ----
 
 ==== Multipart
@@ -394,24 +397,24 @@ For example:
 
 [source,java,indent=0,subs="verbatim"]
 ----
-MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-
-parts.add("fieldPart", "fieldValue");
-parts.add("filePart", new FileSystemResource("...logo.png"));
-parts.add("jsonPart", new Person("Jason"));
-
-HttpHeaders headers = new HttpHeaders();
-headers.setContentType(MediaType.APPLICATION_XML);
-parts.add("xmlPart", new HttpEntity<>(myBean, headers));
-
-// send using RestClient.post or RestTemplate.postForEntity
+	MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+	
+	parts.add("fieldPart", "fieldValue");
+	parts.add("filePart", new FileSystemResource("...logo.png"));
+	parts.add("jsonPart", new Person("Jason"));
+	
+	HttpHeaders headers = new HttpHeaders();
+	headers.setContentType(MediaType.APPLICATION_XML);
+	parts.add("xmlPart", new HttpEntity<>(myBean, headers));
+	
+	// send using RestClient.post or RestTemplate.postForEntity
 ----
 
 In most cases, you do not have to specify the `Content-Type` for each part.
 The content type is determined automatically based on the `HttpMessageConverter` chosen to serialize it or, in the case of a `Resource`, based on the file extension.
 If necessary, you can explicitly provide the `MediaType` with an `HttpEntity` wrapper.
 
-Once the `MultiValueMap` is ready, you can use it as the body of a `POST` request, using  `RestClient.post().body(parts)` (or `RestTemplate.postForObject`).
+Once the `MultiValueMap` is ready, you can use it as the body of a `POST` request, using `RestClient.post().body(parts)` (or `RestTemplate.postForObject`).
 
 If the `MultiValueMap` contains at least one non-`String` value, the `Content-Type` is set to `multipart/form-data` by the `FormHttpMessageConverter`.
 If the `MultiValueMap` has `String` values, the `Content-Type` defaults to `application/x-www-form-urlencoded`.
@@ -853,7 +856,7 @@ Start by creating the interface with `@HttpExchange` methods:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	interface RepositoryService {
+	public interface RepositoryService {
 
 		@GetExchange("/repos/{owner}/{repo}")
 		Repository getRepository(@PathVariable String owner, @PathVariable String repo);
@@ -904,7 +907,7 @@ For `RestTemplate`:
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
 	@HttpExchange(url = "/repos/{owner}/{repo}", accept = "application/vnd.github.v3+json")
-	interface RepositoryService {
+	public interface RepositoryService {
 
 		@GetExchange
 		Repository getRepository(@PathVariable String owner, @PathVariable String repo);
@@ -938,10 +941,10 @@ method parameters:
 | Dynamically set the HTTP method for the request, overriding the annotation's `method` attribute
 
 | `@RequestHeader`
-| Add a request header or multiple headers. The argument may be a `Map<String, ?>` or
-  `MultiValueMap<String, ?>` with multiple headers, a `Collection<?>` of values, or an
-  individual value. Type conversion is supported for non-String values. This overrides
-  the annotation's `headers` attribute.
+| Add a request header or multiple headers. The argument may be a single value,
+  a `Collection<?>` of values, `Map<String, ?>`,`MultiValueMap<String, ?>`.
+  Type conversion is supported for non-String values. Header values are added and
+  do not override already added header values.
 
 | `@PathVariable`
 | Add a variable for expand a placeholder in the request URL. The argument may be a
@@ -987,6 +990,27 @@ parameter annotation) is set to `false`, or the parameter is marked optional as 
 {spring-framework-api}/core/MethodParameter.html#isOptional()[`MethodParameter#isOptional`].
 
 
+
+[[rest-http-interface.custom-resolver]]
+=== Custom argument resolver
+
+For more complex cases, HTTP interfaces do not support `RequestEntity` types as method parameters.
+This would take over the entire HTTP request and not improve the semantics of the interface.
+Instead of adding many method parameters, developers can combine them into a custom type
+and configure a dedicated `HttpServiceArgumentResolver` implementation.
+
+In the following HTTP interface, we are using a custom `Search` type as a parameter:
+
+include-code::./CustomHttpServiceArgumentResolver[tag=httpinterface,indent=0]
+
+We can implement our own `HttpServiceArgumentResolver` that supports our custom `Search` type
+and writes its data in the outgoing HTTP request.
+
+include-code::./CustomHttpServiceArgumentResolver[tag=argumentresolver,indent=0]
+
+Finally, we can use this argument resolver during the setup and use our HTTP interface.
+
+include-code::./CustomHttpServiceArgumentResolver[tag=usage,indent=0]
 
 [[rest-http-interface-return-values]]
 === Return Values
@@ -1112,11 +1136,11 @@ performed through the client:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-    RestTemplate restTemplate = new RestTemplate();
-    restTemplate.setErrorHandler(myErrorHandler);
-
-    RestTemplateAdapter adapter = RestTemplateAdapter.create(restTemplate);
-    HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+	RestTemplate restTemplate = new RestTemplate();
+	restTemplate.setErrorHandler(myErrorHandler);
+	
+	RestTemplateAdapter adapter = RestTemplateAdapter.create(restTemplate);
+	HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 ----
 
 For more details and options, see the Javadoc of `setErrorHandler` in `RestTemplate` and

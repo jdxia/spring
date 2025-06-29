@@ -69,32 +69,31 @@ normalization {
 
 javadoc {
 	description = "Generates project-level javadoc for use in -javadoc jar"
-
-	options.encoding = "UTF-8"
-	options.memberLevel = JavadocMemberLevel.PROTECTED
-	options.author = true
-	options.header = project.name
-	options.use = true
-	options.links(project.ext.javadocLinks)
-	// Check for syntax during linting. 'none' doesn't seem to work in suppressing
-	// all linting warnings all the time (see/link references most notably).
-	options.addStringOption("Xdoclint:syntax", "-quiet")
-
-	// Suppress warnings due to cross-module @see and @link references.
-	// Note that global 'api' task does display all warnings, and
-	// checks for 'reference' on top of 'syntax'.
-	logging.captureStandardError LogLevel.INFO
-	logging.captureStandardOutput LogLevel.INFO  // suppress "## warnings" message
+	failOnError = true
+	options {
+		encoding = "UTF-8"
+		memberLevel = JavadocMemberLevel.PROTECTED
+		author = true
+		header = project.name
+		use = true
+		links(project.ext.javadocLinks)
+		// Check for 'syntax' during linting. Note that the global
+		// 'framework-api:javadoc' task checks for 'reference' in addition
+		// to 'syntax'.
+		addBooleanOption("Xdoclint:syntax,-reference", true)
+		addBooleanOption('Werror', true)  // fail build on Javadoc warnings
+	}
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
+tasks.register('sourcesJar', Jar) {
+	dependsOn classes
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveClassifier.set("sources")
 	from sourceSets.main.allSource
 	// Don't include or exclude anything explicitly by default. See SPR-12085.
 }
 
-task javadocJar(type: Jar) {
+tasks.register('javadocJar', Jar) {
 	archiveClassifier.set("javadoc")
 	from javadoc
 }
@@ -114,16 +113,16 @@ components.java.withVariantsFromConfiguration(configurations.testFixturesApiElem
 components.java.withVariantsFromConfiguration(configurations.testFixturesRuntimeElements) { skip() }
 
 tasks.withType(JavaCompile).configureEach {
-    options.errorprone {
-    	disableAllChecks = true
-        option("NullAway:CustomContractAnnotations", "org.springframework.lang.Contract")
-        option("NullAway:AnnotatedPackages", "org.springframework")
-        option("NullAway:UnannotatedSubPackages", "org.springframework.instrument,org.springframework.context.index," +
+	options.errorprone {
+		disableAllChecks = true
+		option("NullAway:CustomContractAnnotations", "org.springframework.lang.Contract")
+		option("NullAway:AnnotatedPackages", "org.springframework")
+		option("NullAway:UnannotatedSubPackages", "org.springframework.instrument,org.springframework.context.index," +
 				"org.springframework.asm,org.springframework.cglib,org.springframework.objenesis," +
 				"org.springframework.javapoet,org.springframework.aot.nativex.substitution,org.springframework.aot.nativex.feature")
-    }
+	}
 }
 tasks.compileJava {
-    // The check defaults to a warning, bump it up to an error for the main sources
-    options.errorprone.error("NullAway")
+	// The check defaults to a warning, bump it up to an error for the main sources
+	options.errorprone.error("NullAway")
 }

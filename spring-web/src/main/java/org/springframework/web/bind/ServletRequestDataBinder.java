@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,10 +244,6 @@ public class ServletRequestDataBinder extends WebDataBinder {
 		@Nullable
 		protected Object getRequestParameter(String name, Class<?> type) {
 			Object value = this.request.getParameterValues(name);
-			if (value == null && !name.endsWith ("[]") &&
-					(List.class.isAssignableFrom(type) || type.isArray())) {
-				value = this.request.getParameterValues(name + "[]");
-			}
 			return (ObjectUtils.isArray(value) && Array.getLength(value) == 1 ? Array.get(value, 0) : value);
 		}
 
