@@ -18,13 +18,13 @@ public class XmlApplicationContextTest {
 		/**
 		 * <b>当一个请求来的时候, 已经初始化完成后</b>
 		 * <p>
-		 * tomcat 处理请求的时候, 调用servlet 的 service方法, {@link javax.servlet.GenericServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
-		 * 最终是子类来实现这个方法 {@link javax.servlet.http.HttpServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
+		 * tomcat 处理请求的时候, 调用servlet 的 service方法, {@link jakarta.servlet.GenericServlet#service(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse)}
+		 * 最终是子类来实现这个方法 {@link jakarta.servlet.http.HttpServlet#service(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse)}
 		 * 然后调用 里面的 this.service(request, response)
 		 * get请求调用doGet, post请求调用doPost, 这些方法都会被子类重写
-		 * {@link org.springframework.web.servlet.FrameworkServlet#doGet(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}
+		 * {@link org.springframework.web.servlet.FrameworkServlet#doGet(jakarta.servlet.http.HttpServletRequest, jakarta.servlet.http.HttpServletResponse)}
 		 * 一路追下去,就会到
-		 * {@link org.springframework.web.servlet.DispatcherServlet#doDispatch(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}
+		 * {@link org.springframework.web.servlet.DispatcherServlet#doDispatch(jakarta.servlet.http.HttpServletRequest, jakarta.servlet.http.HttpServletResponse)}
 		 *
 		 */
 
