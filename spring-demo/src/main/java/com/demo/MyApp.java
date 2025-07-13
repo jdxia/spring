@@ -38,7 +38,7 @@ public class MyApp {
 		System.out.println("factoryBean对象: " + applicationContext.getBean("&orderFactoryBean"));
 
 		// &orderFactoryBean  --> orderFactoryBean  --> orderFactoryBean对象 -->没有有&就调用 --> getObject --> Order对象
-		Order order = (Order) applicationContext.getBean("orderFactoryBean", Order.class);
+		Order order = applicationContext.getBean("orderFactoryBean", Order.class);
 		System.out.println("order打印: " + order);
 	}
 
