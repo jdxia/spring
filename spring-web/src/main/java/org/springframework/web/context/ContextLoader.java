@@ -132,7 +132,7 @@ public class ContextLoader {
 	 */
 	private static final String DEFAULT_STRATEGIES_PATH = "ContextLoader.properties";
 
-
+	// 看下面的静态方法
 	private static final Properties defaultStrategies;
 
 	static {
@@ -141,6 +141,7 @@ public class ContextLoader {
 		// by application developers.
 		try {
 			ClassPathResource resource = new ClassPathResource(DEFAULT_STRATEGIES_PATH, ContextLoader.class);
+			// 读取 ContextLoader.properties 这个配置文件
 			defaultStrategies = PropertiesLoaderUtils.loadProperties(resource);
 		}
 		catch (IOException ex) {
@@ -284,11 +285,19 @@ public class ContextLoader {
 		try {
 			// Store context in local instance variable, to guarantee that
 			// it is available on ServletContext shutdown.
-			// 如果当前成员变量中不存在WebApplicationContext则创建一个根WebApplicationContext
+			/**
+			 * 如果当前成员变量中不存在 WebApplicationContext 则创建一个根 WebApplicationContext
+			 * context 一开始是null
+			 */
 			if (this.context == null) {
+				/**
+				 * 创建的是父容器, 这个只是实例化, 还没初始化容器
+				 * 容器是 {@link org.springframework.web.context.support.XmlWebApplicationContext}
+				 */
 				this.context = createWebApplicationContext(servletContext);
 			}
 			if (this.context instanceof ConfigurableWebApplicationContext) {
+				// cwac 就是上面的  this.context
 				ConfigurableWebApplicationContext cwac = (ConfigurableWebApplicationContext) this.context;
 				if (!cwac.isActive()) {
 					// The context has not yet been refreshed -> provide services such as
@@ -296,7 +305,7 @@ public class ContextLoader {
 					if (cwac.getParent() == null) {
 						// The context instance was injected without an explicit parent ->
 						// determine parent for root web application context, if any.
-						//为根WebApplicationContext设置一个父容器
+						//为根WebApplicationContext设置一个父容器, 这边的 parent 是null
 						ApplicationContext parent = loadParentContext(servletContext);
 						cwac.setParent(parent);
 					}
@@ -351,6 +360,9 @@ public class ContextLoader {
 	 * @see ConfigurableWebApplicationContext
 	 */
 	protected WebApplicationContext createWebApplicationContext(ServletContext sc) {
+		/**
+		 * contextClass 是 {@link org.springframework.web.context.support.XmlWebApplicationContext}
+		 */
 		Class<?> contextClass = determineContextClass(sc);
 		if (!ConfigurableWebApplicationContext.class.isAssignableFrom(contextClass)) {
 			throw new ApplicationContextException("Custom context class [" + contextClass.getName() +
@@ -370,6 +382,7 @@ public class ContextLoader {
 	 */
 	protected Class<?> determineContextClass(ServletContext servletContext) {
 		String contextClassName = servletContext.getInitParameter(CONTEXT_CLASS_PARAM);
+		// contextClassName  是 null
 		if (contextClassName != null) {
 			try {
 				return ClassUtils.forName(contextClassName, ClassUtils.getDefaultClassLoader());
@@ -379,9 +392,14 @@ public class ContextLoader {
 						"Failed to load custom context class [" + contextClassName + "]", ex);
 			}
 		}
+		/**
+		 * 从 defaultStrategies 里面获取  org.springframework.web.context.WebApplicationContext 这个key的值
+		 * 获取到的是org.springframework.web.context.support.XmlWebApplicationContext
+		 */
 		else {
 			contextClassName = defaultStrategies.getProperty(WebApplicationContext.class.getName());
 			try {
+				// 创建这个
 				return ClassUtils.forName(contextClassName, ContextLoader.class.getClassLoader());
 			}
 			catch (ClassNotFoundException ex) {
@@ -411,8 +429,10 @@ public class ContextLoader {
 		wac.setServletContext(sc);
 		/*
 			CONFIG_LOCATION_PARAM = "contextConfigLocation"
-			获取web.xml中<context-param>标签配置的全局变量，其中key为CONFIG_LOCATION_PARAM 也就是 contextConfigLocation
-			也就是我们配置的相应Bean的xml文件名，并将其放入到WebApplicationContext中
+			获取web.xml中<context-param>标签配置的全局变量，其中key为 CONFIG_LOCATION_PARAM 也就是 contextConfigLocation
+			也就是我们配置的相应Bean的xml文件名，并将其放入到 WebApplicationContext 中
+
+			外面配置的是 ctx.addParameter("contextConfigLocation", "classpath:com/study/xmlapp/spring-application.xml");
         */
 		String configLocationParam = sc.getInitParameter(CONFIG_LOCATION_PARAM);
 		if (configLocationParam != null) {

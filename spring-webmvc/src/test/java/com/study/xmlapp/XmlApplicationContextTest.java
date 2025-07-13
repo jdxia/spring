@@ -7,6 +7,7 @@ import org.apache.catalina.Wrapper;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.web.context.ContextLoaderListener;
+import org.springframework.web.servlet.HttpServletBean;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import javax.servlet.MultipartConfigElement;
@@ -61,22 +62,24 @@ public class XmlApplicationContextTest {
 		 * Servlet规范中ServletContext是tomcat的Context实现的一个成员变量，而Spring的ApplicationContext是Servlet规范中ServletContext的一个属性
 		 */
 		ctx.addApplicationListener("org.springframework.web.context.ContextLoaderListener");
-		ctx.addParameter("contextConfigLocation", "classpath:com/study/xmlapp/spring-application.xml"); // 父容器 service
+		// 父容器 service
+		ctx.addParameter("contextConfigLocation", "classpath:com/study/xmlapp/spring-application.xml");
 
 		// web.xml配置, 现在在这里配置了
+
 		/**
 		 * <p> 初始化逻辑 </p>
 		 *
-		 * 源码先从 DispatcherServlet 的父类 HttpServletBean 看, tomcat肯定会调用 {@link org.springframework.web.servlet.HttpServletBean#init} 方法
-		 * 初始化了 servlet容器, 是子容器
+		 * <p>
+		 * Tomcat&Jetty在启动过程中触发容器初始化事件，Spring的 ContextLoaderListener 会监听到这个事件，它的 contextInitialized 方法会被调用，
+		 * {@link org.springframework.web.context.ContextLoaderListener#contextInitialized(ServletContextEvent)}
+		 * 在这个方法中，Spring会初始化全局的Spring根容器，这个就是Spring的IoC容器，
+		 * IoC容器初始化完毕后，Spring将其存储到ServletContext中，便于以后来获取。
+		 * </p>
 		 *
 		 * <p>
 		 * Tomcat&Jetty在启动时给每个Web应用创建一个全局的上下文环境，这个上下文就是ServletContext，其为后面的Spring容器提供宿主环境。
-		 *
-		 * Tomcat&Jetty在启动过程中触发容器初始化事件，Spring的 ContextLoaderListener 会监听到这个事件，它的 contextInitialized 方法会被调用，
-		 * {@link ContextLoaderListener#contextInitialized(ServletContextEvent)}
-		 * 在这个方法中，Spring会初始化全局的Spring根容器，这个就是Spring的IoC容器，
-		 * IoC容器初始化完毕后，Spring将其存储到ServletContext中，便于以后来获取。
+		 * </p>
 		 *
 		 * Tomcat&Jetty在启动过程中还会扫描Servlet，一个Web应用中的Servlet可以有多个，以SpringMVC中的 DispatcherServlet 为例，这个Servlet实际上是一个标准的前端控制器，用以转发、匹配、处理每个Servlet请求。
 		 *
@@ -84,10 +87,16 @@ public class XmlApplicationContextTest {
 		 * 同时，Spring MVC还会通过ServletContext拿到Spring根容器，并将Spring根容器设为SpringMVC容器的父容器，
 		 * 请注意，Spring MVC容器可以访问父容器中的Bean，但是父容器不能访问子容器的Bean， 也就是说Spring根容器不能访问SpringMVC容器里的B
 		 *
+		 * tomcat肯定会调用 {@link HttpServletBean#init()} 方法, 也就是 就调用 DispatcherServlet 的init方法, DispatcherServlet 的父类 HttpServletBean
+		 *  里面 初始化了 servlet容器, 是子容器
+		 *
+		 *
 		 * <p>
 		 * Servlet 规范里定义了 ServletContext 这个接口来对应一个 Web 应用。Web 应用部署好后，Servlet 容器在启动时会加载 Web 应用，并为每个 Web 应用创建唯一的 ServletContext 对象。
 		 * 你可以把 ServletContext 看成是一个全局对象，一个 Web 应用可能有多个 Servlet，这些 Servlet 可以通过全局的 ServletContext 来共享数据，这些数据包括 Web 应用的初始化参数、Web 应用目录下的文件资源等。
 		 * 由于 ServletContext 持有所有 Servlet 实例，你还可以通过它来实现 Servlet 请求的转发。
+		 * </p>
+		 *
 		 */
 		Wrapper mvc = tomcat.addServlet("", "mvc", "org.springframework.web.servlet.DispatcherServlet");
 		mvc.addMapping("/");

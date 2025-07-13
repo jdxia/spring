@@ -528,7 +528,10 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		long startTime = System.currentTimeMillis();
 
 		try {
-			// 创建spring容器, 重点
+			/**
+			 * 创建spring容器, 重点
+			 * 创建和初始化子容器（Servlet WebApplicationContext）的
+			 */
 			this.webApplicationContext = initWebApplicationContext();
 			// 空方法, 无实现
 			initFrameworkServlet();
@@ -561,7 +564,10 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 	 * @see #setContextConfigLocation
 	 */
 	protected WebApplicationContext initWebApplicationContext() {
-		// 获得ContextLoaderListener存的父容器, service, domain 这些
+		/**
+		 * 获得ContextLoaderListener存的父容器
+		 * service, domain 这些
+		 */
 		WebApplicationContext rootContext =
 				WebApplicationContextUtils.getWebApplicationContext(getServletContext());
 		WebApplicationContext wac = null;
@@ -579,6 +585,7 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 					if (cwac.getParent() == null) {
 						// The context instance was injected without an explicit parent -> set
 						// the root application context (if any; may be null) as the parent
+						// 建立父子关系
 						cwac.setParent(rootContext);
 					}
 					// 配置并加载子容器 (controller是子容器), 走到这里要看情况, 重点
