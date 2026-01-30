@@ -303,11 +303,13 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 				// 检查spring容器里面是否已经存在这个beanName
 				// 判断该beanDefinition是否已注册，如果已注册，就不再重复注册
 				if (checkCandidate(beanName, candidate)) {
-					// BeanDefinitionHolder是对BeanDefinition的一种包装。它持有一个BeanDefinition实例，同时还记录了该Bean的名称和别名
-					// 定上下文中管理这个Bean定义的标识信息
+					/**
+					 * BeanDefinitionHolder是对BeanDefinition的一种包装。它持有一个BeanDefinition实例，同时还记录了该Bean的名称和别名
+					 * 定上下文中管理这个Bean定义的标识信息
+					 */
 					BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(candidate, beanName);
 
-					// 如果设置了 ScopedProxyMode, 则会生成一个新的BeanDefinition, 类型为ScopedProxyFactoryBean
+					// 获取bean的scope
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);

@@ -756,6 +756,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 						 * 为什么@Lazy注解就可以, 因为spring发现A对象里面依赖B, 但是这个B加了@Lazy, 那么就直接先创建个代理对象, 只是代理对象里面B属性是空, 等你要用这个B对象的时候
 						 * 代理对象才去 ioc容器里面getBean去找B对象
 						 *
+						 * 普通 AOP（如 @Transactional）的处理器 AbstractAutoProxyCreator 有个缓存机制：
+						 * 如果在 getEarlyBeanReference() 阶段已经创建过代理
+						 * 在 postProcessAfterInitialization() 阶段会检查，直接返回原始对象，不会重复创建代理
+						 * 但 @Async 是另一个 BeanPostProcessor（AsyncAnnotationBeanPostProcessor），它不知道之前已经有代理了，所以会再包一层
+						 *
 						 * 再出个问题:
 						 * A对象的成员方法上不加@Async注解,属性B上加注入注解不加@Lazy,
 						 * B对象的成员方法加@Async注解, 报错吗?

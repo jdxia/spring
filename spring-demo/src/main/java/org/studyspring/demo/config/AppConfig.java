@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 @Configuration()
 @ComponentScan("org.studyspring.**")
-@EnableTransactionManagement // 开启事务
+@EnableTransactionManagement(proxyTargetClass = true) // 开启事务
 // Spring自己没有定义关于切面相关的注解，而是使用来自org.aspectj这个Jar包里面的注解的（但是没有用它的技术解析，这点需要明白）
 @EnableAspectJAutoProxy(proxyTargetClass=true, exposeProxy=true)  // 开启aop 设置cglib代理, 属性默认是false
 @EnableScheduling
@@ -45,6 +45,7 @@ public class AppConfig {
 
 	@Bean
 	public DataSourceTransactionManager transactionManager() {
+
 		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager();
 		/**
 		 * 设置数据源, 数据源格式很多, 有 DriverManagerDataSource 和 AbstractRoutingDataSource 或者 HikariDataSource
