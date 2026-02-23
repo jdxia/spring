@@ -565,13 +565,13 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 	 */
 	protected WebApplicationContext initWebApplicationContext() {
 		/**
-		 * 获得ContextLoaderListener存的父容器
-		 * service, domain 这些
+		 * 获得ContextLoaderListener存的父容器, 这边已经创建了 父容器  service, domain 这些
 		 */
 		WebApplicationContext rootContext =
 				WebApplicationContextUtils.getWebApplicationContext(getServletContext());
 		WebApplicationContext wac = null;
 
+		// 这边是null, 不会进
 		if (this.webApplicationContext != null) {
 			// A context instance was injected at construction time -> use it
 			// 获得子容器 servlet, controller 这些
@@ -603,8 +603,11 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		}
 		if (wac == null) { // 一般走这个
 			// No context instance is defined for this servlet -> create a local one
-			// xml会在这里创建, 往下
-			// 设置父子容器
+			/**
+			 * xml会在这里创建, spring mvc的容器, 往下
+			 * 设置父子容器
+			 * 里面很核心
+			 */
 			wac = createWebApplicationContext(rootContext);
 		}
 
@@ -667,7 +670,7 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 	 */
 	protected WebApplicationContext createWebApplicationContext(@Nullable ApplicationContext parent) {
 		// 配置文件可以改这个, web.xml 配置名 contextClass, 值可以自己写一个, 这边就变了
-		Class<?> contextClass = getContextClass(); // 默认是 XmlWebApplicationContext.class
+		Class<?> contextClass = getContextClass(); // 默认是 XmlWebApplicationContext.class 里面的常量
 		if (!ConfigurableWebApplicationContext.class.isAssignableFrom(contextClass)) {
 			throw new ApplicationContextException(
 					"Fatal initialization error in servlet with name '" + getServletName() +
@@ -685,7 +688,10 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		if (configLocation != null) {
 			wac.setConfigLocation(configLocation);
 		}
-		// 启动spring容器, 会解析上面的spring配置文件, 核心
+		/**
+		 * 启动spring容器, 会解析上面的spring配置文件
+		 * 核心
+		 */
 		configureAndRefreshWebApplicationContext(wac);
 
 		// 返回spring容器, 可以看这个容器里面的beanFactory里面的singletonObjects
@@ -712,9 +718,12 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 		wac.setNamespace(getNamespace());
 		/**
 		 * 监听器, 委托设计模式, 核心: 监听器 ContextRefreshListener 重点
-		 * 这个监听器监听的是 spring refresh 之后发布的事件
+		 * 这个监听器监听的是 容器 refresh 之后发布的事件, 先绑定的监听器, 下面再refresh的, 所以下面refresh的时候能触发
 		 * 添加监听器 sourceFilteringListener 到wac中,实际监听的是 ContextRefreshListener 所监听的事件，监听ContextRefreshedEvent事件，
 		 * 当接收到消息之后会调用onApplicationEvent方法，调用onRefresh方法，并将refreshEventReceived标志设置为true，表示已经refresh过
+		 *
+		 * 看 {@link ContextRefreshListener} 就行, 核心
+		 * 里面有 初始化了9种组件
 		 */
 		wac.addApplicationListener(new SourceFilteringListener(wac, new ContextRefreshListener()));
 

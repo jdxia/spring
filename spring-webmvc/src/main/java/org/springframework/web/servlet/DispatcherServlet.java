@@ -517,9 +517,10 @@ public class DispatcherServlet extends FrameworkServlet {
 		// 初始化 ThemeResolver:主要用来设置主题Theme
 		initThemeResolver(context);
 
-		// 初始化 HandlerMapping:映射器，用来将对应的request跟controller进行对应
-		// 将所有api方法封装成handlerMapping保存起来
-		// Map <path, Handler> 核心
+		/**
+		 * 初始化 HandlerMapping:映射器，用来将对应的request跟controller进行对应
+		 * 将所有api方法封装成handlerMapping保存起来   Map <path, Handler> 核心
+		 */
 		initHandlerMappings(context);
 
 		// 初始化 HandlerAdapter:处理适配器，主要包含Http请求处理器适配器，简单控制器处理器适配器，注解方法处理器适配器

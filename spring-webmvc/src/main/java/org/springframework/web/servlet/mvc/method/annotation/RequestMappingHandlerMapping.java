@@ -256,7 +256,7 @@ public class RequestMappingHandlerMapping extends RequestMappingInfoHandlerMappi
 		// 方法上的@RequestMapping
 		RequestMappingInfo info = createRequestMappingInfo(method);
 		if (info != null) {
-			// 类上的 @RequestMapping
+			// 类上的 @RequestMapping, 往下
 			RequestMappingInfo typeInfo = createRequestMappingInfo(handlerType);
 
 			// 合并路径

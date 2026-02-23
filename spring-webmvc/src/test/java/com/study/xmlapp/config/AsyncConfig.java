@@ -8,5 +8,5 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration(proxyBeanMethods = false)
 public class AsyncConfig {
 
-	// 在xml中配置了, 这里不配置了
+	// 在xml中配置了, 这里不配置了, 要配置异步线程要用那个线程池
 }

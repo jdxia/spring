@@ -69,7 +69,8 @@ public class App {
 	}
 
 	private static void eventTest() throws Exception {
-		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
+//		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class, AsyncConfig.class);
+		AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(AppConfig.class);
 
 //		DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ac.getBeanFactory();
 //		beanFactory.registerBeanDefinition();
