@@ -27,7 +27,10 @@ public class MyBeanDefinitionScanner extends ClassPathBeanDefinitionScanner {
 			// 用 GenericBeanDefinition 是为了可以用 setAutowireMode 方法
 			GenericBeanDefinition beanDefinition = (GenericBeanDefinition) beanDefinitionHolder.getBeanDefinition();
 
-			//下面2步 顺序不能反, 不然 你的beanClassName先改成MyMybatisFactoryBean, 你的构造器参数就不是接口的类名了
+			/**
+			 * 下面2步 顺序不能反, 不然 你的beanClassName先改成MyMybatisFactoryBean, 你的构造器参数就不是接口的类名了
+			 * 如果反的话, beanDefinition.getBeanClassName() 就是不对的了
+			 */
 
 			// 构造器参数里面放入一个值, 就是接口的类名, 也就是FactoryBean的构造器参数
 			beanDefinition.getConstructorArgumentValues().addGenericArgumentValue(beanDefinition.getBeanClassName());
