@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.reactive.result.SimpleHandlerAdapter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -157,6 +158,9 @@ public class DispatcherHandler implements WebHandler, ApplicationContextAware {
 	private Mono<HandlerResult> invokeHandler(ServerWebExchange exchange, Object handler) {
 		if (this.handlerAdapters != null) {
 			for (HandlerAdapter handlerAdapter : this.handlerAdapters) {
+				/**
+				 * {@link SimpleHandlerAdapter}
+				 */
 				if (handlerAdapter.supports(handler)) {
 					return handlerAdapter.handle(exchange, handler);
 				}

@@ -398,6 +398,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				else {
 					// 从指定的 scope 创建 bean
 					String scopeName = mbd.getScope();
+
+					/**
+					 * 如果是 spring-cloud-commons里面的 @RefreshScope
+					 * 这块就是 org.springframework.cloud.context.scope.refresh.RefreshScope 里面的 get
+					 */
 					final Scope scope = this.scopes.get(scopeName);
 					if (scope == null) {
 						throw new IllegalStateException("No Scope registered for scope name '" + scopeName + "'");
